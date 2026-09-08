@@ -1,0 +1,299 @@
+{
+  "url": "https://innovativeroofing.com/",
+  "site_id": "89",
+  "row": 5,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "{\"status\": \"error\",\"errors\": [{\"code\": 522,\"message\": \"Connection timed out\",\"detail\": \"Cloudflare could not establish a TCP connection to the origin server\",\"type\": \"CloudflareError\",\"retry_after_seconds\": 120}]}"
+    },
+    "update_check": {
+      "plugins_available": 5,
+      "core_available": true,
+      "core_version": "7.1",
+      "details": {
+        "plugins_available": 5,
+        "core_available": true,
+        "core_version": "7.1",
+        "plugin_list": [
+          {
+            "name": "Activity Log",
+            "current": "2.11.2",
+            "new": "2.14.1",
+            "can_update": true
+          },
+          {
+            "name": "Elementor",
+            "current": "4.1.4",
+            "new": "4.2.4",
+            "can_update": true
+          },
+          {
+            "name": "Redirection",
+            "current": "5.9.0",
+            "new": "5.10.0",
+            "can_update": true
+          },
+          {
+            "name": "WordPress Importer",
+            "current": "0.9.5",
+            "new": "0.9.6",
+            "can_update": true
+          },
+          {
+            "name": "WPCode Lite",
+            "current": "2.3.8",
+            "new": "2.3.9",
+            "can_update": true
+          },
+          {
+            "name": "Elementor Pro",
+            "current": "3.32.3",
+            "new": "4.2.2",
+            "can_update": false,
+            "warning": "BLOCKED - License verification required"
+          }
+        ],
+        "message": "Update check completed for site 89. Found 5 updatable plugins and 1 core update available (1 plugin blocked due to license warning)."
+      }
+    },
+    "plugin_update_request": {
+      "batch_id": "batch_0be54b9d0c8a1913",
+      "status": "queued",
+      "details": {
+        "batch_id": "batch_0be54b9d0c8a1913",
+        "status": "queued",
+        "plugins_updated": 6,
+        "message": "Plugin update batch queued for site id 89 (innovativeroofing.com). 6 plugins queued for update (Activity Log, Elementor, Redirection, WordPress Importer, WPCode Lite, Yoast SEO) with backup and health checks enabled. 1 plugin (Elementor Pro) was blocked \u2014 license verification required before it can be updated. Batch ID batch_0be54b9d0c8a1913 with 6 job IDs is now processing; poll check-batch-status-tool for progress."
+      }
+    },
+    "core_update_request": {
+      "batch_id": "batch_63ab9d84c9828653",
+      "target_version": "7.1",
+      "status": "pending",
+      "details": {
+        "batch_id": "batch_63ab9d84c9828653",
+        "status": "pending",
+        "target_version": "7.1",
+        "message": "Job queued \u2014 poll GET /job-status/job_9b504b02d0af01ee or GET /batch-status/batch_63ab9d84c9828653 for its result."
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "{\"status\": \"FAILED\",\"errors\": [\"[04-Sep-2026 09:10:53 UTC] PHP Fatal error: Uncaught Error: Class \\\"Elementor\\\\Core\\\\Common\\\\App\\\" not found\",\"[04-Sep-2026 09:10:53 UTC] PHP Fatal error: Uncaught Error: Class \\\"Elementor\\\\Core\\\\Logger\\\\Loggers\\\\Logger_Interface\\\" not found\",\"[04-Sep-2026 09:10:53 UTC] PHP Fatal error: Uncaught Error: Class \\\"Elementor\\\\Control_Select2\\\" not found\",\"[04-Sep-2026 09:10:53 UTC] PHP Fatal error: Uncaught Error: Class \\\"Elementor\\\\Utils\\\" not found\",\"[04-Sep-2026 09:10:53 UTC] PHP Fatal error: Uncaught Error: Class \\\"Elementor\\\\Core\\\\Base\\\\Elements_Iteration_Actions\\\\Assets\\\" not found\"],\"issue\": \"Elementor plugin fatal errors - missing class definitions indicating plugin corruption or incomplete installation after core/plugin updates\"}"
+    },
+    "external_updates": {
+      "found": false,
+      "details": "{\"found_external\": false,\"updates\": [],\"message\": \"No external plugin updates detected \u2014 all versions match the stored snapshot. Snapshot refreshed \u2014 29 plugin(s) recorded as new baseline.\",\"snapshot_updated\": true,\"snapshot_plugin_count\": 29}"
+    },
+    "sheet_sync": {
+      "synced": false,
+      "row": 5
+    },
+    "final_report_chat": {
+      "sent": true,
+      "alert": true
+    }
+  },
+  "batch_jobs": [
+    {
+      "type": "plugin_update",
+      "batch_id": "batch_0be54b9d0c8a1913",
+      "checks": 2,
+      "final_status": "completed",
+      "details": {
+        "status": "completed",
+        "batch_id": "batch_0be54b9d0c8a1913",
+        "completed_count": 2,
+        "total_count": 6,
+        "jobs_summary": {
+          "pending": 0,
+          "running": 0,
+          "completed": 2,
+          "failed": 0,
+          "cancelled": 4
+        },
+        "jobs": [
+          {
+            "job_id": "job_6a674576d22368fa",
+            "job_type": "update_plugin",
+            "status": "completed",
+            "plugin_slug": "aryo-activity-log/aryo-activity-log.php",
+            "plugin_name": "Activity Log",
+            "old_version": "2.11.2",
+            "new_version": "2.14.1",
+            "success": true,
+            "backup_id": "bkp_aryo-activity-log_2026_09_04_09_10_40_dqwjwrnq",
+            "health_checks": {
+              "all_passed": true,
+              "checks": {
+                "homepage": {
+                  "passed": true,
+                  "status_code": 200
+                },
+                "admin": {
+                  "passed": true
+                },
+                "rest_api": {
+                  "passed": true
+                },
+                "php_errors": {
+                  "passed": true
+                }
+              }
+            },
+            "execution_time": 8.395,
+            "completed_at": "2026-09-04 09:10:48"
+          },
+          {
+            "job_id": "job_ff94060ad2f2bff8",
+            "job_type": "update_plugin",
+            "status": "completed",
+            "plugin_slug": "elementor/elementor.php",
+            "plugin_name": "Elementor",
+            "old_version": "4.1.4",
+            "new_version": "4.2.4",
+            "success": true,
+            "backup_id": "bkp_elementor_2026_09_04_09_10_49_mxhghutq",
+            "health_checks": {
+              "all_passed": false,
+              "checks": {
+                "homepage": {
+                  "passed": true,
+                  "status_code": 200
+                },
+                "admin": {
+                  "passed": true
+                },
+                "rest_api": {
+                  "passed": true
+                },
+                "php_errors": {
+                  "passed": false,
+                  "fatal_errors_detected": true
+                }
+              }
+            },
+            "rolled_back": true,
+            "rollback_message": "Rollback completed successfully",
+            "execution_time": 14.26,
+            "completed_at": "2026-09-04 09:11:02"
+          },
+          {
+            "job_id": "job_c7678c53ef32e6f3",
+            "job_type": "update_plugin",
+            "status": "cancelled",
+            "plugin_slug": "redirection/redirection.php",
+            "plugin_name": "Redirection",
+            "error_message": "Blocked by a prior job (job_ff94060ad2f2bff8) that was rolled back after a failed health check.",
+            "completed_at": "2026-09-04 09:11:02"
+          },
+          {
+            "job_id": "job_95b9bcb975a65bb5",
+            "job_type": "update_plugin",
+            "status": "cancelled",
+            "plugin_slug": "wordpress-importer/wordpress-importer.php",
+            "plugin_name": "WordPress Importer",
+            "error_message": "Cancelled \u2014 an earlier job in this batch (job_c7678c53ef32e6f3) did not complete cleanly.",
+            "completed_at": "2026-09-04 09:11:02"
+          },
+          {
+            "job_id": "job_65576a685337f058",
+            "job_type": "update_plugin",
+            "status": "cancelled",
+            "plugin_slug": "insert-headers-and-footers/ihaf.php",
+            "plugin_name": "WPCode Lite",
+            "error_message": "Cancelled \u2014 an earlier job in this batch (job_c7678c53ef32e6f3) did not complete cleanly.",
+            "completed_at": "2026-09-04 09:11:02"
+          },
+          {
+            "job_id": "job_780518b29dc40755",
+            "job_type": "update_plugin",
+            "status": "cancelled",
+            "plugin_slug": "wordpress-seo/wp-seo.php",
+            "plugin_name": "Yoast SEO",
+            "error_message": "Cancelled \u2014 an earlier job in this batch (job_c7678c53ef32e6f3) did not complete cleanly.",
+            "completed_at": "2026-09-04 09:11:02"
+          }
+        ]
+      }
+    },
+    {
+      "type": "core_update",
+      "batch_id": "batch_63ab9d84c9828653",
+      "checks": 2,
+      "final_status": "completed",
+      "details": {
+        "status": "completed",
+        "batch_id": "batch_63ab9d84c9828653",
+        "completed_count": 0,
+        "total_count": 1,
+        "jobs_summary": {
+          "pending": 0,
+          "running": 0,
+          "completed": 0,
+          "failed": 1,
+          "cancelled": 0
+        },
+        "jobs": [
+          {
+            "job_id": "job_9b504b02d0af01ee",
+            "job_type": "update_core",
+            "status": "failed",
+            "attempts": 3,
+            "max_attempts": 3,
+            "error_message": "No core update available (Exception)",
+            "scheduled_at": "2026-09-04 09:16:24",
+            "started_at": "2026-09-04 09:19:02",
+            "completed_at": "2026-09-04 09:19:02"
+          }
+        ]
+      }
+    }
+  ],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "{\"status\": \"error\",\"errors\": [{\"code\": 522,\"message\": \"Connection timed out\",\"detail\": \"Cloudflare could not establish a TCP connection to the origin server\",\"type\": \"CloudflareError\",\"retry_after_seconds\": 120}]}"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 5,
+        "core_available": true,
+        "core_version": "7.1"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "{\"status\": \"FAILED\",\"errors\": [\"[04-Sep-2026 09:10:53 UTC] PHP Fatal error: Uncaught Error: Class \\\"Elementor\\\\Core\\\\Common\\\\App\\\" not found\",\"[04-Sep-2026 09:10:53 UTC] PHP Fatal error: Uncaught Error: Class \\\"Elementor\\\\Core\\\\Logger\\\\Loggers\\\\Logger_Interface\\\" not found\",\"[04-Sep-2026 09:10:53 UTC] PHP Fatal error: Uncaught Error: Class \\\"Elementor\\\\Control_Select2\\\" not found\",\"[04-Sep-2026 09:10:53 UTC] PHP Fatal error: Uncaught Error: Class \\\"Elementor\\\\Utils\\\" not found\",\"[04-Sep-2026 09:10:53 UTC] PHP Fatal error: Uncaught Error: Class \\\"Elementor\\\\Core\\\\Base\\\\Elements_Iteration_Actions\\\\Assets\\\" not found\"],\"issue\": \"Elementor plugin fatal errors - missing class definitions indicating plugin corruption or incomplete installation after core/plugin updates\"}"
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false,
+        "details": "{\"found_external\": false,\"updates\": [],\"message\": \"No external plugin updates detected \u2014 all versions match the stored snapshot. Snapshot refreshed \u2014 29 plugin(s) recorded as new baseline.\",\"snapshot_updated\": true,\"snapshot_plugin_count\": 29}"
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "failed_with_retries",
+      "details": {
+        "synced": false,
+        "row": 5
+      },
+      "attempts": 1
+    }
+  ]
+}

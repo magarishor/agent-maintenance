@@ -1,0 +1,159 @@
+{
+  "url": "https://www.rockvilleinteriors.com/",
+  "site_id": "5",
+  "row": 9,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "{\"status\": \"PASSED\", \"errors\": []}"
+    },
+    "update_check": {
+      "plugins_available": 1,
+      "core_available": false,
+      "core_version": "7.0.3",
+      "details": {
+        "plugins_available": 1,
+        "core_available": false,
+        "core_version": "7.0.3",
+        "message": "Update check completed for site 5. 1 plugin update available (Jetpack 16.1 \u2192 16.1.1). WordPress core is up to date."
+      }
+    },
+    "plugin_update_request": {
+      "batch_id": "batch_00b422b0cc4e4863",
+      "status": "queued",
+      "details": {
+        "batch_id": "batch_00b422b0cc4e4863",
+        "status": "queued",
+        "plugins_updated": 1,
+        "message": "Plugin update batch queued successfully for site id=5. 1 plugin (Jetpack, slug jetpack/jetpack.php) queued for update with create_backup=true and run_health_checks=true. Batch ID batch_00b422b0cc4e4863, job ID job_045fff1a4cb241fb. No plugins were blocked. Poll check-batch-status-tool with this batch_id to monitor progress until it reaches a terminal state (success, failed, or cancelled)."
+      }
+    },
+    "plugin_update_email": {
+      "sent": true,
+      "status": "completed"
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "{\"status\": \"healthy\", \"errors\": [], \"site\": \"Rockville Interiors Website Maintenance\", \"all_checks_passed\": true, \"details\": {\"homepage\": \"accessible\", \"admin\": \"accessible\", \"rest_api\": \"accessible\", \"php_errors\": \"none\"}}"
+    },
+    "external_updates": {
+      "found": false,
+      "details": "{\"found_external\": false, \"updates\": [], \"message\": \"No external plugin updates detected \u2014 all versions match the stored snapshot. Snapshot refreshed \u2014 29 plugin(s) recorded as new baseline.\"}"
+    },
+    "sheet_sync": {
+      "synced": true,
+      "row": 9
+    },
+    "final_report_email": {
+      "sent": true
+    }
+  },
+  "batch_jobs": [
+    {
+      "type": "plugin_update",
+      "batch_id": "batch_00b422b0cc4e4863",
+      "checks": 1,
+      "final_status": "completed",
+      "details": {
+        "completed_count": 1,
+        "total_count": 1,
+        "status": "completed",
+        "batch_id": "batch_00b422b0cc4e4863",
+        "jobs_summary": {
+          "pending": 0,
+          "running": 0,
+          "completed": 1,
+          "failed": 0,
+          "cancelled": 0
+        },
+        "jobs": [
+          {
+            "job_id": "job_045fff1a4cb241fb",
+            "job_type": "update_plugin",
+            "status": "completed",
+            "plugin_slug": "jetpack/jetpack.php",
+            "plugin_name": "Jetpack",
+            "old_version": "16.1",
+            "new_version": "16.1.1",
+            "error_message": null,
+            "scheduled_at": "2026-08-12 00:19:18",
+            "started_at": "2026-08-12 00:19:19",
+            "completed_at": "2026-08-12 00:19:29",
+            "result": {
+              "success": true,
+              "backup_id": "bkp_jetpack_2026_08_12_00_19_19_qvtfisho",
+              "health_checks": {
+                "all_passed": true,
+                "checks": {
+                  "homepage": {
+                    "passed": true,
+                    "message": "Homepage accessible",
+                    "status_code": 200
+                  },
+                  "admin": {
+                    "passed": true,
+                    "message": "Admin URL accessible (HTTP 200)"
+                  },
+                  "rest_api": {
+                    "passed": true,
+                    "message": "REST API accessible"
+                  },
+                  "php_errors": {
+                    "passed": true,
+                    "message": "No fatal PHP errors in recent log entries"
+                  }
+                }
+              },
+              "execution_time": 9.84061884880066
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "{\"status\": \"PASSED\", \"errors\": []}"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 1,
+        "core_available": false,
+        "core_version": "7.0.3"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "{\"status\": \"healthy\", \"errors\": [], \"site\": \"Rockville Interiors Website Maintenance\", \"all_checks_passed\": true, \"details\": {\"homepage\": \"accessible\", \"admin\": \"accessible\", \"rest_api\": \"accessible\", \"php_errors\": \"none\"}}"
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false,
+        "details": "{\"found_external\": false, \"updates\": [], \"message\": \"No external plugin updates detected \u2014 all versions match the stored snapshot. Snapshot refreshed \u2014 29 plugin(s) recorded as new baseline.\"}"
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "success",
+      "details": {
+        "synced": true,
+        "row": 9
+      },
+      "attempts": 1
+    }
+  ]
+}

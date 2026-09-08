@@ -1,0 +1,189 @@
+{
+  "url": "https://www.tier1pestsolution.com/",
+  "site_id": "155",
+  "row": 17,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": []\n}\n```"
+    },
+    "update_check": {
+      "plugins_available": 3,
+      "core_available": true,
+      "core_version": "6.5.4",
+      "details": {
+        "plugins_available": 3,
+        "core_available": true,
+        "core_version": "6.5.4",
+        "plugin_list": [
+          {
+            "slug": "wordfence",
+            "current": "7.8.1",
+            "latest": "7.9.0",
+            "type": "security"
+          },
+          {
+            "slug": "akismet",
+            "current": "5.1",
+            "latest": "5.2",
+            "type": "standard"
+          },
+          {
+            "slug": "wp-super-cache",
+            "current": "1.7.2",
+            "latest": "1.8.0",
+            "type": "standard"
+          }
+        ],
+        "message": "Update check for site 155 completed successfully. 3 plugin updates and 1 core update available."
+      }
+    },
+    "plugin_update_request": {
+      "batch_id": "batch_986c8ed058989243",
+      "status": "success",
+      "details": {
+        "batch_id": "batch_986c8ed058989243",
+        "status": "success",
+        "plugins_updated": 3,
+        "message": "Full backup created (bkp_full_2026_08_12_01_13_49_lmogtgde) prior to update. All 3 available plugin updates completed successfully with all health checks passing: SVG Support 2.5.16→2.6.1, Wordfence Security 8.2.2→9.0.0, Yoast SEO 28.0→28.2. 2 plugins (Gravity Forms, Advanced Custom Fields PRO) were blocked from update because they use third-party update servers requiring manual license verification (add to Settings → Allowed Licensed Plugins to enable auto-update)."
+      }
+    },
+    "plugin_update_email": {
+      "sent": true,
+      "status": "completed"
+    },
+    "core_update_request": {
+      "batch_id": "batch_7605c7f75e69c736",
+      "target_version": "6.5.4",
+      "status": "pending",
+      "details": {
+        "batch_id": "batch_7605c7f75e69c736",
+        "status": "pending",
+        "target_version": "6.5.4",
+        "message": "Job queued — poll GET /job-status/job_00e93645d69850b1 or GET /batch-status/batch_7605c7f75e69c736 for its result."
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": []\n}\n```\n\n**Health Check Result for Site #155 (Tier 1 Pest Solutions)**\n\n✓ All checks PASSED\n- Homepage accessible\n- Admin interface accessible\n- REST API functional\n- No PHP fatal errors\n\nSite is verified healthy after all updates completed successfully."
+    },
+    "external_updates": {
+      "found": false,
+      "details": "```json\n{\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected — all versions match the stored snapshot. Snapshot refreshed — 8 plugin(s) recorded as new baseline.\",\n  \"success\": true,\n  \"snapshot_updated\": true,\n  \"snapshot_plugin_count\": 8,\n  \"batch_id\": \"batch_18a5ca0d02205e4a\"\n}\n```"
+    },
+    "sheet_sync": {
+      "synced": false,
+      "row": 17
+    },
+    "final_report_email": {
+      "sent": true
+    }
+  },
+  "batch_jobs": [
+    {
+      "type": "plugin_update",
+      "batch_id": "batch_986c8ed058989243",
+      "checks": 1,
+      "final_status": "completed",
+      "details": {
+        "status": "completed",
+        "completed_count": 3,
+        "total_count": 3,
+        "summary": {
+          "batch_id": "batch_986c8ed058989243",
+          "status": "completed",
+          "all_jobs_passed": true,
+          "plugins_updated": 3
+        },
+        "jobs_summary": {
+          "pending": 0,
+          "running": 0,
+          "completed": 3,
+          "failed": 0,
+          "cancelled": 0
+        },
+        "jobs": [
+          {
+            "job_id": "job_61cd0509e2c82a63",
+            "plugin": "SVG Support (svg-support/svg-support.php)",
+            "status": "completed",
+            "version_change": "2.5.16 → 2.6.1",
+            "success": true,
+            "execution_time_seconds": 1.43
+          },
+          {
+            "job_id": "job_ee12a64bc5f7ab5b",
+            "plugin": "Wordfence Security (wordfence/wordfence.php)",
+            "status": "completed",
+            "version_change": "8.2.2 → 9.0.0",
+            "success": true,
+            "execution_time_seconds": 3.47
+          },
+          {
+            "job_id": "job_a21c32590a096204",
+            "plugin": "Yoast SEO (wordpress-seo/wp-seo.php)",
+            "status": "completed",
+            "version_change": "28.0 → 28.2",
+            "success": true,
+            "execution_time_seconds": 2.6
+          }
+        ]
+      }
+    },
+    {
+      "type": "core_update",
+      "batch_id": "batch_7605c7f75e69c736",
+      "checks": 5,
+      "final_status": "timeout",
+      "details": {
+        "status": "timeout",
+        "error": "Batch timed out"
+      }
+    }
+  ],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": []\n}\n```"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 3,
+        "core_available": true,
+        "core_version": "6.5.4"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": []\n}\n```\n\n**Health Check Result for Site #155 (Tier 1 Pest Solutions)**\n\n✓ All checks PASSED\n- Homepage accessible\n- Admin interface accessible\n- REST API functional\n- No PHP fatal errors\n\nSite is verified healthy after all updates completed successfully."
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false,
+        "details": "```json\n{\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected — all versions match the stored snapshot. Snapshot refreshed — 8 plugin(s) recorded as new baseline.\",\n  \"success\": true,\n  \"snapshot_updated\": true,\n  \"snapshot_plugin_count\": 8,\n  \"batch_id\": \"batch_18a5ca0d02205e4a\"\n}\n```"
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "failed_with_retries",
+      "details": {
+        "synced": false,
+        "row": 17
+      },
+      "attempts": 1
+    }
+  ]
+}

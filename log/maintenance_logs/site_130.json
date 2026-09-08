@@ -1,0 +1,215 @@
+{
+  "url": "https://thehowardcenterforwellness.com/",
+  "site_id": "130",
+  "row": 18,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": []\n}\n```"
+    },
+    "update_check": {
+      "plugins_available": 2,
+      "core_available": true,
+      "core_version": "7.0.3",
+      "details": {
+        "plugins_available": 2,
+        "core_available": true,
+        "core_version": "7.0.3",
+        "message": "Site 130 (The Howard Center for Wellness) has 2 plugin updates available and 1 core update available. Plugin updates: Site Kit by Google (1.184.0 -> 1.185.0), Wordfence Security (8.2.2 -> 9.0.0). Core update: WordPress 7.0.2 -> 7.0.3."
+      }
+    },
+    "plugin_update_request": {
+      "batch_id": "batch_81d8cd7a0ac1f322",
+      "status": "queued",
+      "details": {
+        "batch_id": "batch_81d8cd7a0ac1f322",
+        "status": "queued",
+        "plugins_updated": 2,
+        "message": "Plugin update batch queued successfully for site id 130 (batch_81d8cd7a0ac1f322, job_ids: job_6b107c20b4517e8c, job_13b75a6f9fceedae). 2 plugins queued for update: Site Kit by Google (google-site-kit/google-site-kit.php) and Wordfence Security (wordfence/wordfence.php). No plugins blocked. Backup creation and health checks enabled per request. Batch is async (HTTP 202) \u2014 poll check-batch-status-tool with batch_id until status reaches a terminal state (success/failed/cancelled)."
+      }
+    },
+    "plugin_update_email": {
+      "sent": true,
+      "status": "completed"
+    },
+    "core_update_request": {
+      "batch_id": "batch_a790d00ff12fc553",
+      "target_version": "7.0.3",
+      "status": "pending",
+      "details": {
+        "batch_id": "batch_a790d00ff12fc553",
+        "status": "pending",
+        "target_version": "7.0.3",
+        "message": "Job queued \u2014 poll GET /job-status/job_0cdd10d61e24a158 or GET /batch-status/batch_a790d00ff12fc553 for its result."
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": [],\n  \"checks\": {\n    \"homepage\": true,\n    \"admin\": true,\n    \"rest_api\": true,\n    \"php_errors\": false\n  },\n  \"timestamp\": \"2026-08-12 06:48:26\"\n}\n```"
+    },
+    "external_updates": {
+      "found": false,
+      "details": "```json\n{\n  \"success\": true,\n  \"found_external\": 0,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected \u2014 all versions match the stored snapshot. Snapshot refreshed \u2014 12 plugin(s) recorded as new baseline.\"\n}\n```"
+    },
+    "sheet_sync": {
+      "synced": true,
+      "row": 18
+    },
+    "final_report_email": {
+      "sent": true
+    }
+  },
+  "batch_jobs": [
+    {
+      "type": "plugin_update",
+      "batch_id": "batch_81d8cd7a0ac1f322",
+      "checks": 1,
+      "final_status": "completed",
+      "details": {
+        "status": "completed",
+        "batch_id": "batch_81d8cd7a0ac1f322",
+        "completed_count": 2,
+        "total_count": 2,
+        "jobs_summary": {
+          "pending": 0,
+          "running": 0,
+          "completed": 2,
+          "failed": 0,
+          "cancelled": 0
+        },
+        "jobs": [
+          {
+            "job_id": "job_6b107c20b4517e8c",
+            "job_type": "update_plugin",
+            "status": "completed",
+            "plugin_slug": "google-site-kit/google-site-kit.php",
+            "plugin_name": "Site Kit by Google",
+            "old_version": "1.184.0",
+            "new_version": "1.185.0",
+            "success": true
+          },
+          {
+            "job_id": "job_13b75a6f9fceedae",
+            "job_type": "update_plugin",
+            "status": "completed",
+            "plugin_slug": "wordfence/wordfence.php",
+            "plugin_name": "Wordfence Security",
+            "old_version": "8.2.2",
+            "new_version": "9.0.0",
+            "success": true
+          }
+        ]
+      }
+    },
+    {
+      "type": "core_update",
+      "batch_id": "batch_a790d00ff12fc553",
+      "checks": 1,
+      "final_status": "completed",
+      "details": {
+        "status": "completed",
+        "batch_id": "batch_a790d00ff12fc553",
+        "completed_count": 1,
+        "total_count": 1,
+        "jobs_summary": {
+          "pending": 0,
+          "running": 0,
+          "completed": 1,
+          "failed": 0,
+          "cancelled": 0
+        },
+        "jobs": [
+          {
+            "job_id": "job_0cdd10d61e24a158",
+            "job_type": "update_core",
+            "status": "completed",
+            "attempts": 0,
+            "max_attempts": 3,
+            "blocked_by": null,
+            "plugin_slug": null,
+            "error_message": null,
+            "scheduled_at": "2026-08-12 06:44:53",
+            "started_at": "2026-08-12 06:44:53",
+            "completed_at": "2026-08-12 06:45:00",
+            "result": {
+              "success": true,
+              "backup_id": "bkp_core_2026_08_12_06_44_53_ohfbqoen",
+              "old_version": "7.0.2",
+              "new_version": "7.0.3",
+              "health_checks": {
+                "all_passed": true,
+                "checks": {
+                  "homepage": {
+                    "passed": true,
+                    "message": "Homepage accessible",
+                    "status_code": 200
+                  },
+                  "admin": {
+                    "passed": true,
+                    "message": "Admin URL accessible (HTTP 200)"
+                  },
+                  "rest_api": {
+                    "passed": true,
+                    "message": "REST API accessible"
+                  },
+                  "php_errors": {
+                    "passed": true,
+                    "message": "No fatal PHP errors in recent log entries"
+                  }
+                },
+                "timestamp": "2026-08-12 06:44:58"
+              },
+              "execution_time": 6.400048017501831,
+              "message": "WordPress updated from 7.0.2 to 7.0.3"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": []\n}\n```"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 2,
+        "core_available": true,
+        "core_version": "7.0.3"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": [],\n  \"checks\": {\n    \"homepage\": true,\n    \"admin\": true,\n    \"rest_api\": true,\n    \"php_errors\": false\n  },\n  \"timestamp\": \"2026-08-12 06:48:26\"\n}\n```"
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false,
+        "details": "```json\n{\n  \"success\": true,\n  \"found_external\": 0,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected \u2014 all versions match the stored snapshot. Snapshot refreshed \u2014 12 plugin(s) recorded as new baseline.\"\n}\n```"
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "success",
+      "details": {
+        "synced": true,
+        "row": 18
+      },
+      "attempts": 1
+    }
+  ]
+}

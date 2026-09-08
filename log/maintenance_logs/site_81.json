@@ -1,0 +1,115 @@
+{
+  "url": "https://teamcpi.com/about-cpi/",
+  "site_id": "81",
+  "row": 4,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": [],\n  \"site\": \"teamcpi.com\",\n  \"timestamp\": \"2026-08-12 03:28:10\",\n  \"all_checks_passed\": true\n}\n```"
+    },
+    "update_check": {
+      "plugins_available": 3,
+      "core_available": false,
+      "core_version": "7.0.3",
+      "details": {
+        "plugins_available": 3,
+        "core_available": false,
+        "core_version": "7.0.3",
+        "plugin_list": [
+          {
+            "name": "Compliance by Hu-manity.co",
+            "current": "3.1.2",
+            "available": "3.1.4",
+            "status": "BLOCKED",
+            "reason": "License verification required"
+          },
+          {
+            "name": "Redirection",
+            "current": "5.8.1",
+            "available": "5.9.0",
+            "status": "BLOCKED",
+            "reason": "License verification required"
+          },
+          {
+            "name": "Wordfence Security",
+            "current": "8.2.2",
+            "available": "9.0.0",
+            "status": "BLOCKED",
+            "reason": "License verification required"
+          }
+        ]
+      }
+    },
+    "plugin_update_request": {
+      "batch_id": "null",
+      "status": "blocked",
+      "details": {
+        "batch_id": "null",
+        "status": "blocked",
+        "plugins_updated": 0,
+        "message": "No updates were applied. All 3 available plugin updates were blocked by the maintenance tool because each uses a third-party update server whose license status cannot be auto-verified: Compliance by Hu-manity.co (cookie-notice/cookie-notice.php), Redirection (redirection/redirection.php), and Wordfence Security (wordfence/wordfence.php). To proceed, add these plugins to Settings -> Allowed Licensed Plugins on the site (id=81) if valid licenses are held, then retry. No batch job was created (batch_id is null, updatable_count=0), so there is nothing to monitor."
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": null,\n  \"report\": {\n    \"all_passed\": true,\n    \"checks\": {\n      \"homepage\": {\n        \"passed\": true,\n        \"message\": \"Homepage accessible\",\n        \"status_code\": 200\n      },\n      \"admin\": {\n        \"passed\": true,\n        \"message\": \"Admin URL accessible (HTTP 200)\"\n      },\n      \"rest_api\": {\n        \"passed\": true,\n        \"message\": \"REST API accessible\"\n      },\n      \"php_errors\": {\n        \"passed\": true,\n        \"message\": \"No error log configured or accessible\"\n      }\n    },\n    \"timestamp\": \"2026-08-12 03:31:49\"\n  }\n}\n```"
+    },
+    "external_updates": {
+      "found": false,
+      "details": "```json\n{\n  \"success\": true,\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected — all versions match the stored snapshot. Snapshot refreshed — 9 plugin(s) recorded as new baseline.\",\n  \"snapshot_updated\": true,\n  \"snapshot_plugin_count\": 9,\n  \"external_updates_found\": 0,\n  \"batch_id\": \"batch_6b3bcca7f6cc6db5\"\n}\n```"
+    },
+    "sheet_sync": {
+      "synced": false,
+      "row": 4
+    },
+    "final_report_email": {
+      "sent": true
+    }
+  },
+  "batch_jobs": [],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": [],\n  \"site\": \"teamcpi.com\",\n  \"timestamp\": \"2026-08-12 03:28:10\",\n  \"all_checks_passed\": true\n}\n```"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 3,
+        "core_available": false,
+        "core_version": "7.0.3"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": null,\n  \"report\": {\n    \"all_passed\": true,\n    \"checks\": {\n      \"homepage\": {\n        \"passed\": true,\n        \"message\": \"Homepage accessible\",\n        \"status_code\": 200\n      },\n      \"admin\": {\n        \"passed\": true,\n        \"message\": \"Admin URL accessible (HTTP 200)\"\n      },\n      \"rest_api\": {\n        \"passed\": true,\n        \"message\": \"REST API accessible\"\n      },\n      \"php_errors\": {\n        \"passed\": true,\n        \"message\": \"No error log configured or accessible\"\n      }\n    },\n    \"timestamp\": \"2026-08-12 03:31:49\"\n  }\n}\n```"
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false,
+        "details": "```json\n{\n  \"success\": true,\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected — all versions match the stored snapshot. Snapshot refreshed — 9 plugin(s) recorded as new baseline.\",\n  \"snapshot_updated\": true,\n  \"snapshot_plugin_count\": 9,\n  \"external_updates_found\": 0,\n  \"batch_id\": \"batch_6b3bcca7f6cc6db5\"\n}\n```"
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "failed_with_retries",
+      "details": {
+        "synced": false,
+        "row": 4
+      },
+      "attempts": 1
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+.env
+.env.local
+*.pyc
+__pycache__/
+.DS_Store
+*.log
+node_modules/
+.claude/
+*.json.bak
+smartsites-chat-*.json
+maintenance-backups-*.json

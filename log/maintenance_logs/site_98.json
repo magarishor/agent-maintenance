@@ -1,0 +1,250 @@
+{
+  "url": "https://www.lafontainelaw.com/",
+  "site_id": "98",
+  "row": 4,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "{\"status\": \"PASSED\",\"errors\": []}"
+    },
+    "update_check": {
+      "plugins_available": 17,
+      "core_available": true,
+      "core_version": "7.0.4 → 7.1",
+      "details": {
+        "plugins_available": 17,
+        "core_available": true,
+        "core_version": "7.0.4 → 7.1",
+        "plugin_list": [
+          {
+            "name": "Akismet Anti-spam: Spam Protection",
+            "current": "5.7",
+            "new": "5.7.2",
+            "can_update": true
+          },
+          {
+            "name": "Activity Log",
+            "current": "2.11.2",
+            "new": "2.14.1",
+            "can_update": true
+          },
+          {
+            "name": "Custom Permalinks",
+            "current": "3.1.2",
+            "new": "3.2.0",
+            "can_update": true
+          },
+          {
+            "name": "Custom Post Type UI",
+            "current": "1.17.2",
+            "new": "1.19.3",
+            "can_update": true
+          },
+          {
+            "name": "Popup Maker",
+            "current": "1.22.0",
+            "new": "1.24.0",
+            "can_update": true
+          },
+          {
+            "name": "ReactPress",
+            "current": "3.3.0",
+            "new": "3.4.0",
+            "can_update": true
+          },
+          {
+            "name": "Redirection",
+            "current": "5.9.0",
+            "new": "5.10.0",
+            "can_update": true
+          },
+          {
+            "name": "Wordfence Security",
+            "current": "8.2.2",
+            "new": "9.0.0",
+            "can_update": true
+          },
+          {
+            "name": "WordPress Importer",
+            "current": "0.9.5",
+            "new": "0.9.6",
+            "can_update": true
+          },
+          {
+            "name": "Yoast SEO",
+            "current": "28.1",
+            "new": "28.4",
+            "can_update": true
+          },
+          {
+            "name": "WP Mail SMTP",
+            "current": "4.8.0",
+            "new": "4.9.0",
+            "can_update": true
+          },
+          {
+            "name": "WP-Optimize - Clean, Compress, Cache",
+            "current": "4.5.4",
+            "new": "4.6.1",
+            "can_update": true
+          },
+          {
+            "name": "Smush",
+            "current": "4.2.0",
+            "new": "4.3.2",
+            "can_update": true
+          },
+          {
+            "name": "WP Statistics",
+            "current": "14.16.8",
+            "new": "14.16.12",
+            "can_update": true
+          },
+          {
+            "name": "WPForms Lite",
+            "current": "1.10.1.1",
+            "new": "2.0.1.1",
+            "can_update": true
+          },
+          {
+            "name": "WPS Hide Login",
+            "current": "1.9.18",
+            "new": "1.9.19",
+            "can_update": true
+          },
+          {
+            "name": "Wonder 3D Carousel Pro",
+            "current": "4.5.1PRO",
+            "new": "4.7",
+            "can_update": false,
+            "blocked_reason": "license key missing or expired"
+          },
+          {
+            "name": "Polylang Pro",
+            "current": "3.6.6",
+            "new": "3.8.7",
+            "can_update": false,
+            "blocked_reason": "license key missing or expired"
+          },
+          {
+            "name": "Divi Booster",
+            "current": "4.8",
+            "new": "5.9",
+            "can_update": true
+          }
+        ],
+        "plugins_available_count": "17",
+        "core_available_value": "true"
+      }
+    },
+    "plugin_update_request": {
+      "batch_id": null,
+      "status": "blocked_pending_backup",
+      "details": {
+        "batch_id": "batch_618a9358b36b2489",
+        "status": "blocked_pending_backup",
+        "plugins_updated": 0,
+        "message": "update-all-plugins-tool (id=98) initially failed: No recent backups found. Please run a full backup before proceeding. Backup queued."
+      }
+    },
+    "core_update_request": {
+      "batch_id": "batch_4a3fa7c36e6f4a3d",
+      "target_version": "7.0.4 → 7.1",
+      "status": "pending",
+      "details": {
+        "batch_id": "batch_4a3fa7c36e6f4a3d",
+        "status": "pending",
+        "target_version": "7.0.4 → 7.1",
+        "message": "Job queued"
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "{\"status\": \"healthy\",\"errors\": []}"
+    },
+    "external_updates": {
+      "found": false,
+      "details": "{\"found_external\": false,\"updates\": []}"
+    },
+    "sheet_sync": {
+      "synced": true,
+      "row": 4
+    },
+    "final_report_chat": {
+      "sent": true,
+      "alert": true
+    }
+  },
+  "batch_jobs": [
+    {
+      "type": "core_update",
+      "batch_id": "batch_4a3fa7c36e6f4a3d",
+      "checks": 1,
+      "final_status": "completed",
+      "details": {
+        "status": "completed",
+        "batch_id": "batch_4a3fa7c36e6f4a3d",
+        "completed_count": 1,
+        "total_count": 1,
+        "jobs_summary": {
+          "pending": 0,
+          "running": 0,
+          "completed": 1,
+          "failed": 0,
+          "cancelled": 0
+        },
+        "jobs": [
+          {
+            "job_id": "job_aee613a764127487",
+            "job_type": "update_core",
+            "status": "completed"
+          }
+        ]
+      }
+    }
+  ],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "{\"status\": \"PASSED\",\"errors\": []}"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 17,
+        "core_available": true,
+        "core_version": "7.0.4 → 7.1"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "{\"status\": \"healthy\",\"errors\": []}"
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "success",
+      "details": {
+        "synced": true,
+        "row": 4
+      },
+      "attempts": 1
+    }
+  ]
+}

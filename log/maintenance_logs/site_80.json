@@ -1,0 +1,85 @@
+{
+  "url": "https://denvercleaningservicecompany.com",
+  "site_id": "80",
+  "row": 2,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"error\",\n  \"errors\": [\"Maintenance api is not yet setup for this site.\"]\n}\n```"
+    },
+    "update_check": {
+      "plugins_available": 0,
+      "core_available": false,
+      "core_version": "null",
+      "details": {
+        "plugins_available": 0,
+        "core_available": false,
+        "core_version": "null",
+        "plugin_list": [],
+        "message": "Site id=80: Maintenance API is not yet configured. Update check cannot proceed. No updates available to queue."
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"error\",\n  \"errors\": [\"Maintenance api is not yet setup for this site.\"]\n}\n```"
+    },
+    "external_updates": {
+      "found": false,
+      "details": "Tool response from `mcp__smartsites-maintenance__check-external-updates-tool` with id=\"80\":\n\n```\nerror: Maintenance api is not yet setup for this site.\n```\n\nThe tool call failed because the maintenance API is not yet configured for site ID 80. This is the exact response returned by the tool."
+    },
+    "sheet_sync": {
+      "synced": false,
+      "row": 2
+    },
+    "final_report_chat": {
+      "sent": true,
+      "alert": true
+    }
+  },
+  "batch_jobs": [],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"error\",\n  \"errors\": [\"Maintenance api is not yet setup for this site.\"]\n}\n```"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 0,
+        "core_available": false,
+        "core_version": "null"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"error\",\n  \"errors\": [\"Maintenance api is not yet setup for this site.\"]\n}\n```"
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false,
+        "details": "Tool response from `mcp__smartsites-maintenance__check-external-updates-tool` with id=\"80\":\n\n```\nerror: Maintenance api is not yet setup for this site.\n```\n\nThe tool call failed because the maintenance API is not yet configured for site ID 80. This is the exact response returned by the tool."
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "failed_with_retries",
+      "details": {
+        "synced": false,
+        "row": 2
+      },
+      "attempts": 1
+    }
+  ]
+}

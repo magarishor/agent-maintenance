@@ -1,0 +1,72 @@
+﻿{
+  "url": "https://costaivone.com/",
+  "site_id": "70",
+  "row": 8,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": []\n}\n```"
+    },
+    "update_check": {
+      "plugins_available": 13,
+      "core_available": false,
+      "core_version": "7.1",
+      "details": {
+        "plugins_available": 13,
+        "core_available": false,
+        "core_version": "7.1",
+        "plugin_list": [
+          {"slug": "aryo-activity-log/aryo-activity-log.php", "name": "Activity Log", "current_version": "2.12.1", "new_version": "2.14.1", "can_update": true},
+          {"slug": "cleantalk-spam-protect/cleantalk.php", "name": "Anti-Spam by CleanTalk", "current_version": "6.86", "new_version": "6.87", "can_update": true},
+          {"slug": "elementor/elementor.php", "name": "Elementor", "current_version": "4.2.3", "new_version": "4.2.4", "can_update": false, "blocked": true},
+          {"slug": "gtranslate/gtranslate.php", "name": "GTranslate", "current_version": "3.1.1", "new_version": "3.1.2", "can_update": true},
+          {"slug": "mainwp-child/mainwp-child.php", "name": "MainWP Child", "current_version": "6.1.7", "new_version": "6.1.8", "can_update": true},
+          {"slug": "microsoft-clarity/clarity.php", "name": "Microsoft Clarity", "current_version": "0.10.27", "new_version": "0.10.29", "can_update": true},
+          {"slug": "redirection/redirection.php", "name": "Redirection", "current_version": "5.9.0", "new_version": "5.10.0", "can_update": true},
+          {"slug": "wp-seopress/seopress.php", "name": "SEOPress", "current_version": "10.1", "new_version": "10.2", "can_update": true},
+          {"slug": "user-role-editor/user-role-editor.php", "name": "User Role Editor", "current_version": "4.66", "new_version": "4.66.1", "can_update": true},
+          {"slug": "wp-rocket/wp-rocket.php", "name": "WP Rocket", "current_version": "3.23.2.2", "new_version": "3.23.3.3", "can_update": true, "license_verified": true},
+          {"slug": "elementor-pro/elementor-pro.php", "name": "Elementor Pro", "current_version": "4.2.2", "new_version": "4.2.3", "can_update": false, "blocked": true},
+          {"slug": "gravityforms/gravityforms.php", "name": "Gravity Forms", "current_version": "3.0.3", "new_version": "3.1.1", "can_update": true, "license_verified": true},
+          {"slug": "advanced-custom-fields-pro/acf.php", "name": "Advanced Custom Fields PRO", "current_version": "6.8.8", "new_version": "6.8.9", "can_update": true, "license_verified": true}
+        ],
+        "message": "Update check completed for site [70] Costa Ivone. 13 plugins available for update, WordPress core up to date. 2 plugins blocked (Elementor, Elementor Pro) - verify licenses before updating."
+      }
+    },
+    "plugin_update_request": {
+      "batch_id": null,
+      "status": "queued",
+      "details": {
+        "batch_id": "batch_17cad09d6e19f0e4",
+        "status": "queued",
+        "plugins_updated": 11,
+        "message": "Plugin update batch queued successfully for site 70 (Costa Ivone, costaivone.com). 11 of 13 available plugin updates were queued (Activity Log, Anti-Spam by CleanTalk, GTranslate, MainWP Child, Microsoft Clarity, Redirection, SEOPress, User Role Editor, WP Rocket, Gravity Forms, Advanced Custom Fields PRO). 2 plugins (Elementor, Elementor Pro) were blocked from updating — they are on the license-blocked list and require license verification before updating. Note: the initial update-all-plugins-tool call failed with \"No recent backups found\" even though a full backup existed from 2026-09-03 23:28; a fresh full backup (batch_055f094347c1f624) was triggered via create-backup-tool and the retry succeeded shortly after. Health checks are enabled (run_health_checks=true) and will run per-plugin as the batch processes; poll check-batch-status-tool with batch_id=batch_17cad09d6e19f0e4 (or queue-status-tool for id=70) to monitor completion — this call only queues the batch, it does not wait for completion."
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": []\n}\n```\n\n**Details:**\n- Overall: PASSED\n- Homepage: ✓ Accessible (HTTP 200)\n- Admin: ✓ Accessible (HTTP 200)\n- REST API: ✓ Accessible\n- PHP Errors: ✓ No fatal errors\n\nSite ID 70 (Costa Ivone) is fully healthy after maintenance cycle completion."
+    },
+    "external_updates": {
+      "found": false,
+      "details": "```json\n{\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected — all versions match the stored snapshot.\",\n  \"snapshot_updated\": true,\n  \"snapshot_plugin_count\": 32,\n  \"batch_id\": \"batch_3c8a768e9d53e1da\"\n}\n```"
+    },
+    "sheet_sync": {
+      "synced": true,
+      "row": 8
+    },
+    "final_report_chat": {
+      "sent": true,
+      "alert": true
+    }
+  },
+  "batch_jobs": [],
+  "step_log": [
+    {"step_number": 1, "step_name": "Health Check (Initial)", "status": "success", "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": []\n}\n```"},
+    {"step_number": 2, "step_name": "Check for Updates", "status": "success", "details": {"plugins_available": 13, "core_available": false, "core_version": "7.1"}},
+    {"step_number": 5, "step_name": "Health Check (Final)", "status": "success", "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": []\n}\n```\n\n**Details:**\n- Overall: PASSED\n- Homepage: ✓ Accessible (HTTP 200)\n- Admin: ✓ Accessible (HTTP 200)\n- REST API: ✓ Accessible\n- PHP Errors: ✓ No fatal errors\n\nSite ID 70 (Costa Ivone) is fully healthy after maintenance cycle completion."},
+    {"step_number": 6, "step_name": "Check External Updates", "status": "success", "details": {"found": false, "details": "```json\n{\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected — all versions match the stored snapshot.\",\n  \"snapshot_updated\": true,\n  \"snapshot_plugin_count\": 32,\n  \"batch_id\": \"batch_3c8a768e9d53e1da\"\n}\n```"}, "attempts": 1},
+    {"step_number": 7, "step_name": "Sync to Google Sheet", "status": "success", "details": {"synced": true, "row": 8}, "attempts": 1}
+  ]
+}

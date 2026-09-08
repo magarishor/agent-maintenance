@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartSites Maintenance System Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Color tokens */
+        :root {
+            --bg-primary: #FAFAF9;
+            --bg-secondary: #F3F2F0;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --border-color: #E5E7EB;
+            --accent-blue: #0066CC;
+            --accent-green: #0FA860;
+            --accent-amber: #D97706;
+            --accent-red: #DC2626;
+            --code-bg: #F9FAFB;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg-primary: #111111;
+                --bg-secondary: #1F2937;
+                --text-primary: #F9FAFB;
+                --text-secondary: #D1D5DB;
+                --border-color: #374151;
+                --accent-blue: #3B82F6;
+                --accent-green: #10B981;
+                --accent-amber: #FBBF24;
+                --accent-red: #EF4444;
+                --code-bg: #1F2937;
+            }
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #111111;
+            --bg-secondary: #1F2937;
+            --text-primary: #F9FAFB;
+            --text-secondary: #D1D5DB;
+            --border-color: #374151;
+            --accent-blue: #3B82F6;
+            --accent-green: #10B981;
+            --accent-amber: #FBBF24;
+            --accent-red: #EF4444;
+            --code-bg: #1F2937;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+
+        /* Header */
+        header {
+            margin-bottom: 64px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .tagline {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+        }
+
+        /* Sections */
+        section {
+            margin-bottom: 64px;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            letter-spacing: -0.3px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--accent-blue);
+            display: inline-block;
+        }
+
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+            max-width: 700px;
+        }
+
+        /* Grid layouts */
+        .grid {
+            display: grid;
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.08);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .card p {
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .card-label {
+            display: inline-block;
+            background: var(--accent-blue);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-label.secondary {
+            background: var(--accent-green);
+        }
+
+        .card-label.warning {
+            background: var(--accent-amber);
+            color: #1F2937;
+        }
+
+        /* Flow diagram */
+        .flow-diagram {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 32px;
+            margin: 24px 0;
+            font-family: "Monaco", "Menlo", monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        .flow-num {
+            background: var(--accent-blue);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .flow-content {
+            flex: 1;
+        }
+
+        .flow-content strong {
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* Code blocks */
+        code {
+            background: var(--code-bg);
+            color: var(--accent-blue);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: "Monaco", "Menlo", monospace;
+            font-size: 13px;
+        }
+
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 16px 0;
+            font-family: "Monaco", "Menlo", monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        th {
+            background: var(--bg-secondary);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        td {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        /* Status badges */
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status.ready {
+            background: rgba(15, 168, 96, 0.1);
+            color: var(--accent-green);
+        }
+
+        .status.pending {
+            background: rgba(217, 119, 6, 0.1);
+            color: var(--accent-amber);
+        }
+
+        /* Callout boxes */
+        .callout {
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--accent-blue);
+            padding: 16px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .callout.warning {
+            border-left-color: var(--accent-amber);
+        }
+
+        .callout.success {
+            border-left-color: var(--accent-green);
+        }
+
+        .callout strong {
+            color: var(--text-primary);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 64px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 28px;
+            }
+
+            h2 {
+                font-size: 22px;
+            }
+
+            .container {
+                padding: 32px 16px;
+            }
+
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Tool reference layout */
+        .tool-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .tool-name {
+            font-family: "Monaco", "Menlo", monospace;
+            font-weight: 600;
+            color: var(--accent-blue);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .tool-desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .tool-params {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-family: "Monaco", "Menlo", monospace;
+            background: var(--bg-primary);
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SmartSites Maintenance System</h1>
+            <p class="tagline">AI-powered daily WordPress maintenance orchestrated via Claude agents and MCP tools. Complete guide for developers and users.</p>
+            <div style="margin-top: 20px;">
+                <span class="status ready">✓ Production Ready</span>
+                <span style="color: var(--text-secondary); margin-left: 16px;">Version 1.0 • Last Updated Aug 2026</span>
+            </div>
+        </header>
+
+        <!-- Quick Start -->
+        <section>
+            <h2>Quick Start</h2>
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-label">For Developers</div>
+                    <h3>Run Locally</h3>
+                    <p>Test the workflow in your environment:</p>
+                    <pre>cd agent-maintenance
+python test_email.py
+python get_today_sites.py
+claude workflow run .claude/workflows/daily-maintenance.js</pre>
+                </div>
+                <div class="card">
+                    <div class="card-label secondary">For Users</div>
+                    <h3>Schedule Runs</h3>
+                    <p>Set up daily automatic maintenance:</p>
+                    <pre>Windows Task Scheduler:
+Time: 2:00 AM daily
+Task: claude workflow run .claude/workflows/daily-maintenance.js</pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section>
+            <h2>How It Works</h2>
+            <p>The system processes WordPress sites through a structured workflow with three phases: setup (load sites), maintenance (process each site sequentially), and summary (report results).</p>
+
+            <h3>Execution Timeline Per Site</h3>
+            <div class="flow-diagram">
+1️⃣ <strong>Health Check (Initial)</strong> — Verify site responds
+   └─ 60s wait
+
+2️⃣ <strong>Check Updates</strong> — Count available plugin & core updates
+   └─ 60s wait
+
+3️⃣ <strong>Update Plugins</strong> [IF plugins_available > 0]
+   ├─ Queue plugin update batch
+   ├─ [IF no backup] Create backup + retry
+   └─ 60s wait
+
+3a. <strong>Monitor Plugin Batch</strong> [IF batch_id valid]
+    ├─ Check status every 120s (max 5 checks = ~10 min timeout)
+    └─ 60s wait
+
+3b. <strong>Send Plugin Report Email</strong>
+
+4️⃣ <strong>Update WordPress Core</strong> [IF core_available == true]
+   ├─ Queue core update batch
+   └─ 60s wait
+
+4a. <strong>Monitor Core Batch</strong> [IF batch_id valid]
+    ├─ Check status every 120s (max 5 checks)
+
+5️⃣ <strong>Final Health Check</strong> — Verify site still healthy
+
+6️⃣ <strong>Check External Updates</strong> — 3rd-party dependencies [RETRY 3x]
+
+7️⃣ <strong>Sync to Google Sheets</strong> — Write results [RETRY 3x]
+
+8️⃣ <strong>Send Site Report Email</strong> — Email summary to team
+            </div>
+
+            <div class="callout">
+                <strong>Timing:</strong> ~4-7 hours for 10 sites. Each site 30-45 min (includes mandatory 60s waits between steps and 120s batch monitoring intervals).
+            </div>
+        </section>
+
+        <!-- MCP Tools -->
+        <section>
+            <h2>MCP Tools Reference</h2>
+            <p>The workflow calls these tools dynamically. Claude selects the right tool based on what each step needs to accomplish.</p>
+
+            <h3>Health & Status</h3>
+            <div class="tool-card">
+                <div class="card-label">MCP Tool</div>
+                <div class="tool-name">health-check-tool</div>
+                <div class="tool-desc">Check if site is healthy</div>
+                <div class="tool-params">Params: id (site_id) | Returns: {status, errors}</div>
+            </div>
+            <div class="tool-card">
+                <div class="card-label">MCP Tool</div>
+                <div class="tool-name">check-updates-tool</div>
+                <div class="tool-desc">Count available updates</div>
+                <div class="tool-params">Params: id | Returns: {plugins_available, core_available, core_version}</div>
+            </div>
+
+            <h3>Updates</h3>
+            <div class="tool-card">
+                <div class="card-label">MCP Tool</div>
+                <div class="tool-name">update-all-plugins-tool</div>
+                <div class="tool-desc">Update all plugins at once</div>
+                <div class="tool-params">Params: id, create_backup, run_health_checks | Returns: {batch_id, status, plugins_updated}</div>
+            </div>
+            <div class="tool-card">
+                <div class="card-label">MCP Tool</div>
+                <div class="tool-name">update-core-tool</div>
+                <div class="tool-desc">Update WordPress core</div>
+                <div class="tool-params">Params: id, version, create_backup, run_health_checks | Returns: {batch_id, status, target_version}</div>
+            </div>
+
+            <h3>Batch Operations & Monitoring</h3>
+            <div class="tool-card">
+                <div class="card-label">MCP Tool</div>
+                <div class="tool-name">check-batch-status-tool</div>
+                <div class="tool-desc">Monitor job progress (called every 120s)</div>
+                <div class="tool-params">Params: id, batch_id | Returns: {status, completed_count, total_count, jobs_summary}</div>
+            </div>
+
+            <h3>Data & Reporting</h3>
+            <div class="tool-card">
+                <div class="card-label">MCP Tool</div>
+                <div class="tool-name">sync-sheets-tool</div>
+                <div class="tool-desc">Write results to Google Sheets</div>
+                <div class="tool-params">Params: id | Returns: {synced, message, row}</div>
+            </div>
+            <div class="tool-card">
+                <div class="card-label">MCP Tool</div>
+                <div class="tool-name">check-external-updates-tool</div>
+                <div class="tool-desc">Check for non-WordPress updates</div>
+                <div class="tool-params">Params: id | Returns: {found_external, updates}</div>
+            </div>
+
+            <h3>Backups & Recovery</h3>
+            <div class="tool-card">
+                <div class="card-label">MCP Tool</div>
+                <div class="tool-name">create-backup-tool</div>
+                <div class="tool-desc">Create site backup before updates</div>
+                <div class="tool-params">Params: id, backup_type | Returns: {success, backup_id}</div>
+            </div>
+            <div class="tool-card">
+                <div class="card-label">MCP Tool</div>
+                <div class="tool-name">rollback-tool</div>
+                <div class="tool-desc">Revert to previous backup</div>
+                <div class="tool-params">Params: id, backup_id | Returns: {success, message}</div>
+            </div>
+
+            <h3>Utilities</h3>
+            <div class="tool-card">
+                <div class="card-label">MCP Tool</div>
+                <div class="tool-name">site-info-tool</div>
+                <div class="tool-desc">Get site details</div>
+                <div class="tool-params">Params: id | Returns: {site_id, url, wp_version, plugins_count, theme}</div>
+            </div>
+            <div class="tool-card">
+                <div class="card-label">MCP Tool</div>
+                <div class="tool-name">who-am-i-tool</div>
+                <div class="tool-desc">Verify MCP server connected</div>
+                <div class="tool-params">Params: none | Returns: {authenticated, user, permissions}</div>
+            </div>
+        </section>
+
+        <!-- Architecture -->
+        <section>
+            <h2>Architecture</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Location</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Workflow</strong></td>
+                        <td><code>.claude/workflows/daily-maintenance.js</code></td>
+                        <td>Orchestrates entire process, calls agents per step</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sites Loader Agent</strong></td>
+                        <td><code>.claude/agents/sites-loader.md</code></td>
+                        <td>Only custom agent; runs Python script to load sites</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Inline Agents</strong></td>
+                        <td>In workflow file</td>
+                        <td>Each step calls agent; Claude picks right MCP tool</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Python Helpers</strong></td>
+                        <td><code>get_today_sites.py</code>, <code>send_email.py</code></td>
+                        <td>Load sites from Google Sheets, send emails via SMTP</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Logs</strong></td>
+                        <td><code>log/maintenance_logs/</code></td>
+                        <td>JSON files per site: <code>site_SITEID.json</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Config</strong></td>
+                        <td><code>.env</code></td>
+                        <td>Secrets: API keys, SMTP, Google Sheet ID</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Design Principles</h3>
+            <ul>
+                <li><strong>Dynamic Tool Selection:</strong> Workflow describes goals; Claude picks appropriate MCP tool</li>
+                <li><strong>Sequential Processing:</strong> Sites processed one at a time (prevents overload)</li>
+                <li><strong>Strict Intervals:</strong> 60s between steps, 120s between batch checks (prevents rate-limiting)</li>
+                <li><strong>Conditional Logic:</strong> Plugin/core updates only run if updates exist</li>
+                <li><strong>Retry Logic:</strong> External checks & sheet sync retry up to 3 times on failure</li>
+                <li><strong>Comprehensive Logging:</strong> Every step logged to JSON + email reports sent</li>
+            </ul>
+        </section>
+
+        <!-- Logging & Debugging -->
+        <section>
+            <h2>Logging & Debugging</h2>
+
+            <h3>Where Logs Live</h3>
+            <pre>log/maintenance_logs/site_SITEID.json</pre>
+            <p>Each site generates a JSON log containing: all step results, batch job details, health status, update counts, sync results, errors (if any).</p>
+
+            <h3>Check Workflow Progress</h3>
+            <ol>
+                <li>Run workflow in Claude Code</li>
+                <li>Click "View transcript" when complete</li>
+                <li>Search for step: <code>health-check-initial</code>, <code>update-plugins</code>, etc.</li>
+                <li>See full agent output for that step</li>
+            </ol>
+
+            <h3>Debug Checklist</h3>
+            <div class="grid grid-2">
+                <div class="card">
+                    <h3>Test Sites Load</h3>
+                    <pre>python get_today_sites.py</pre>
+                    <p>Should show list of sites for today</p>
+                </div>
+                <div class="card">
+                    <h3>Test Email</h3>
+                    <pre>python test_email.py</pre>
+                    <p>Should send test email to REPORT_EMAIL</p>
+                </div>
+                <div class="card">
+                    <h3>Verify MCP Server</h3>
+                    <pre>rtk who-am-i</pre>
+                    <p>Should confirm smartsites-maintenance connected</p>
+                </div>
+                <div class="card">
+                    <h3>Check Site Log</h3>
+                    <pre>cat log/maintenance_logs/site_12345.json</pre>
+                    <p>View complete results for specific site</p>
+                </div>
+            </div>
+
+            <div class="callout warning">
+                <strong>Debugging Tip:</strong> When something fails, check in order: Google Sheets connection → Email setup → MCP tool access → Workflow execution → Site logs.
+            </div>
+        </section>
+
+        <!-- Setup & Configuration -->
+        <section>
+            <h2>Setup & Configuration</h2>
+
+            <h3>Environment Variables</h3>
+            <p>Create <code>.env</code> file in project root:</p>
+            <pre>GOOGLE_SHEET_ID=1ToMticvQWHAkQ8FU5c7uO2GLlvpjmG4ZAKMyQOdAB8A
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=ssfeddev32@gmail.com
+SMTP_PASSWORD=xxxx xxxx xxxx xxxx
+REPORT_EMAIL=frontend@smartsites.com
+SERVICE_ACCOUNT_JSON_PATH=./maintenance-backups-1e58c79f6033.json</pre>
+
+            <h3>Google Sheets Structure</h3>
+            <p>Sheet must have tabs for each day: Sunday, Monday, Tuesday, etc.</p>
+            <p>Columns A-I: URL, Site ID, GLog Sheet, Full API Key, Readonly Key, API Base URL, Test Pass, Notes, Dev Name</p>
+
+            <h3>Configure Intervals (Optional)</h3>
+            <p>Edit <code>.claude/workflows/daily-maintenance.js</code>:</p>
+            <pre>const AGENT_CALL_INTERVAL = 60_000     // 1 min between agent calls
+const BATCH_CHECK_INTERVAL = 120_000   // 2 min between batch checks
+const MAX_BATCH_CHECKS = 5             // ~10 min timeout per batch
+const MAX_RETRIES = 3                  // Retry external/sheet sync 3x</pre>
+        </section>
+
+        <!-- Scheduling -->
+        <section>
+            <h2>Scheduling Automated Runs</h2>
+
+            <h3>Windows Task Scheduler (Recommended)</h3>
+            <ol>
+                <li>Open Task Scheduler (Windows key → search)</li>
+                <li>Right-click "Task Scheduler Library" → Create Task</li>
+                <li><strong>General:</strong> Name "SmartSites Daily Maintenance"</li>
+                <li><strong>Triggers:</strong> Daily at 2:00 AM</li>
+                <li><strong>Actions:</strong> Program: <code>claude</code>, Arguments: <code>workflow run .claude/workflows/daily-maintenance.js</code></li>
+                <li><strong>Start in:</strong> <code>C:\Users\...\Documents\AI-All\agent-maintenance</code></li>
+                <li>OK → Enter Windows password</li>
+            </ol>
+
+            <h3>Claude Code Scheduled Agents</h3>
+            <p>In Claude Code interactive: <code>/schedule</code> → Create routine → Select workflow → Set cron <code>0 2 * * *</code></p>
+
+            <div class="callout">
+                <strong>Test First:</strong> Before scheduling, run workflow manually and verify it completes successfully.
+            </div>
+        </section>
+
+        <!-- Common Issues -->
+        <section>
+            <h2>Troubleshooting</h2>
+
+            <div class="card">
+                <h3>❌ "No sites found for today"</h3>
+                <p><strong>Check:</strong> Google Sheet tab exists for today's day name (exact match: "Monday", not "monday"). Column A has URLs. Tab is shared with service account.</p>
+                <p><strong>Test:</strong> <code>python get_today_sites.py</code></p>
+            </div>
+
+            <div class="card">
+                <h3>❌ Email reports not sent</h3>
+                <p><strong>Check:</strong> SMTP credentials in .env are valid. Using app password (not regular Gmail password). <code>send_email.py</code> actually called (not just HTML composed).</p>
+                <p><strong>Test:</strong> <code>python test_email.py</code></p>
+            </div>
+
+            <div class="card">
+                <h3>❌ Plugin/core updates not running</h3>
+                <p><strong>Check:</strong> Update check returned 0 plugins or false for core (correct behavior). Agent actually called MCP tool (check transcript).</p>
+                <p><strong>Look for:</strong> "MUST CALL: update-all-plugins-tool" in transcript</p>
+            </div>
+
+            <div class="card">
+                <h3>❌ Batch monitoring timeout</h3>
+                <p><strong>Check:</strong> Batch job actually queued (has valid batch_id). Job is running (not stuck at "pending").</p>
+                <p><strong>Fix:</strong> Reduce MAX_BATCH_CHECKS to fail faster if needed</p>
+            </div>
+
+            <div class="card">
+                <h3>❌ Sheet sync failing after retries</h3>
+                <p><strong>Check:</strong> Google Sheets API quota. Sheet structure matches expected columns. No formula errors in update cells.</p>
+                <p><strong>Verify:</strong> Open sheet in browser, check for red error triangles</p>
+            </div>
+
+            <div class="card">
+                <h3>❌ "Authentication failed" for MCP tools</h3>
+                <p><strong>Check:</strong> MCP server is authenticated. Service account file exists. Credentials in .env valid.</p>
+                <p><strong>Fix:</strong> Reconnect MCP server in Claude Code: <code>/mcp smartsites-maintenance</code></p>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section>
+            <h2>FAQ</h2>
+
+            <div class="card">
+                <h3>How long does a full run take?</h3>
+                <p>~4-7 hours for 10 sites. Per site: 30-45 min (includes required waits between steps).</p>
+            </div>
+
+            <div class="card">
+                <h3>Can I run multiple sites in parallel?</h3>
+                <p>Not currently. Sequential processing prevents rate-limiting and keeps logs clean. Future feature.</p>
+            </div>
+
+            <div class="card">
+                <h3>What if a site fails?</h3>
+                <p>Error logged to that site's JSON file. Workflow continues to next site. Daily summary shows which sites failed.</p>
+            </div>
+
+            <div class="card">
+                <h3>Can I monitor progress in real-time?</h3>
+                <p>Yes. Run in Claude Code interactive, watch progress tree, click agents to see transcripts, or check <code>log/maintenance_logs/</code> in real-time.</p>
+            </div>
+
+            <div class="card">
+                <h3>What happens if interrupted?</h3>
+                <p>Partial logs saved. Emails may sent for completed sites. Run again to finish.</p>
+            </div>
+
+            <div class="card">
+                <h3>How do I add a new site?</h3>
+                <p>Open Google Sheet → Find tab for day → Add row with URL, Site ID, etc. → Save. Picked up automatically on next run.</p>
+            </div>
+
+            <div class="card">
+                <h3>How do I disable a site?</h3>
+                <p>Delete row from tab or move to "Disabled" tab. Site skipped on next run.</p>
+            </div>
+
+            <div class="card">
+                <h3>Can I manually trigger a batch job?</h3>
+                <p>Yes. Use <code>update-all-plugins-tool</code> directly via Claude Code, monitor with <code>check-batch-status-tool</code>.</p>
+            </div>
+        </section>
+
+        <!-- Resources -->
+        <section>
+            <h2>Resources & Docs</h2>
+            <p>For more detailed information:</p>
+            <ul>
+                <li><strong>Developer Guide:</strong> <code>DEVELOPER_GUIDE.md</code> — Complete reference with advanced topics</li>
+                <li><strong>Workflow Source:</strong> <code>.claude/workflows/daily-maintenance.js</code> — Full workflow implementation</li>
+                <li><strong>Agent Definitions:</strong> <code>.claude/agents/*.md</code> — Custom agents</li>
+                <li><strong>Project Config:</strong> <code>CLAUDE.md</code> — Architecture decisions and rules</li>
+                <li><strong>Original Setup:</strong> <code>README.md</code> — Initial setup guide</li>
+            </ul>
+        </section>
+
+        <footer>
+            <p>SmartSites Daily Maintenance System • Version 1.0 • August 2026</p>
+            <p>For issues or updates, refer to DEVELOPER_GUIDE.md or contact the development team.</p>
+        </footer>
+    </div>
+</body>
+</html>

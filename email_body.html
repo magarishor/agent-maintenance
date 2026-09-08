@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 5px 5px 0 0;
+            text-align: center;
+        }
+        .content {
+            background: white;
+            padding: 20px;
+            border-radius: 0 0 5px 5px;
+        }
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .summary-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .summary-table .label {
+            font-weight: bold;
+            width: 40%;
+            background: #f0f0f0;
+        }
+        .summary-table .value {
+            text-align: center;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .stat-box {
+            flex: 1;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            margin: 0 5px;
+        }
+        .stat-box .number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-box .label {
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .success {
+            color: #27ae60;
+        }
+        .sites-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .sites-table th {
+            background: #2c3e50;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+        .sites-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .sites-table .status-completed {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Daily Maintenance Summary</h1>
+            <p>Sunday Maintenance Report</p>
+        </div>
+        <div class="content">
+            <h2>Maintenance Overview</h2>
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="number">2</div>
+                    <div class="label">Total Sites</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number success">2</div>
+                    <div class="label">Completed</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number">0</div>
+                    <div class="label">Failed</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number success">100%</div>
+                    <div class="label">Success Rate</div>
+                </div>
+            </div>
+
+            <h2>Sites Status</h2>
+            <table class="sites-table">
+                <thead>
+                    <tr>
+                        <th>Site URL</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>https://personalprotectionsolutions.us/</td>
+                        <td class="status-completed">✓ COMPLETED</td>
+                    </tr>
+                    <tr>
+                        <td>https://wcorlando.com/</td>
+                        <td class="status-completed">✓ COMPLETED</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="text-align: center; color: #27ae60; font-size: 14px; margin: 20px 0;">
+                <strong>All scheduled maintenance completed successfully!</strong>
+            </p>
+
+            <div class="footer">
+                <p>SmartSites Daily Maintenance System<br>
+                Generated on Sunday, August 09, 2026</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

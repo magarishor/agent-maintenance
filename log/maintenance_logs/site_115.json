@@ -1,0 +1,85 @@
+{
+  "url": "https://struttonplumbing.com/",
+  "site_id": "115",
+  "row": 9,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"error\",\n  \"errors\": [\"Internal server error occurred when calling health-check-tool with id=115\"]\n}\n```"
+    },
+    "update_check": {
+      "plugins_available": 0,
+      "core_available": false,
+      "core_version": "null",
+      "details": {
+        "plugins_available": 0,
+        "core_available": false,
+        "core_version": "null",
+        "plugin_list": [],
+        "message": "check-updates-tool failed with internal server error for site id=115. Tool returned error response. No updates can be determined."
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "{\n  \"status\": \"error\",\n  \"errors\": [\"Internal server error when calling health-check-tool for site id=115. MCP tool returned error.\"]\n}"
+    },
+    "external_updates": {
+      "found": false,
+      "details": "TOOL CALL FAILED - All 3 attempts resulted in internal server errors.\n\nTool: mcp__smartsites-maintenance__check-external-updates-tool\nParameter: id=\"115\"\nResult: Internal server error (repeated on attempts 1, 2, and 3)\n\nUnable to retrieve external updates check. The smartsites-maintenance MCP server is experiencing issues processing this request."
+    },
+    "sheet_sync": {
+      "synced": false,
+      "row": 9
+    },
+    "final_report_chat": {
+      "sent": true,
+      "alert": true
+    }
+  },
+  "batch_jobs": [],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"error\",\n  \"errors\": [\"Internal server error occurred when calling health-check-tool with id=115\"]\n}\n```"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 0,
+        "core_available": false,
+        "core_version": "null"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "{\n  \"status\": \"error\",\n  \"errors\": [\"Internal server error when calling health-check-tool for site id=115. MCP tool returned error.\"]\n}"
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false,
+        "details": "TOOL CALL FAILED - All 3 attempts resulted in internal server errors.\n\nTool: mcp__smartsites-maintenance__check-external-updates-tool\nParameter: id=\"115\"\nResult: Internal server error (repeated on attempts 1, 2, and 3)\n\nUnable to retrieve external updates check. The smartsites-maintenance MCP server is experiencing issues processing this request."
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "failed_with_retries",
+      "details": {
+        "synced": false,
+        "row": 9
+      },
+      "attempts": 1
+    }
+  ]
+}

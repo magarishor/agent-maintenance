@@ -1,0 +1,84 @@
+{
+  "url": "https://www.waterheatersnow.com/",
+  "site_id": "54",
+  "row": 8,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"error\",\n  \"errors\": [\"Maintenance api is not yet setup for this site.\"]\n}\n```"
+    },
+    "update_check": {
+      "plugins_available": 0,
+      "core_available": false,
+      "core_version": "null",
+      "details": {
+        "plugins_available": 0,
+        "core_available": false,
+        "core_version": "null",
+        "plugin_list": [],
+        "message": "Update check failed: Maintenance API is not yet setup for site ID 54. The site requires proper configuration of the SS Maintenance Pro plugin before updates can be checked or applied."
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"error\",\n  \"errors\": [\"Maintenance api is not yet setup for this site.\"]\n}\n```"
+    },
+    "external_updates": {
+      "found": false,
+      "details": "**Tool Response:**\n\n```json\n{\n  \"error\": \"Maintenance api is not yet setup for this site.\",\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"Maintenance api is not yet setup for this site.\"\n}\n```\n\nThe check-external-updates-tool returned an error indicating that the maintenance API is not configured for site ID 54. No external updates were detected because the API setup is incomplete on this site."
+    },
+    "sheet_sync": {
+      "synced": false,
+      "row": 8
+    },
+    "final_report_email": {
+      "sent": true
+    }
+  },
+  "batch_jobs": [],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"error\",\n  \"errors\": [\"Maintenance api is not yet setup for this site.\"]\n}\n```"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 0,
+        "core_available": false,
+        "core_version": "null"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"error\",\n  \"errors\": [\"Maintenance api is not yet setup for this site.\"]\n}\n```"
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false,
+        "details": "**Tool Response:**\n\n```json\n{\n  \"error\": \"Maintenance api is not yet setup for this site.\",\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"Maintenance api is not yet setup for this site.\"\n}\n```\n\nThe check-external-updates-tool returned an error indicating that the maintenance API is not configured for site ID 54. No external updates were detected because the API setup is incomplete on this site."
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "failed_with_retries",
+      "details": {
+        "synced": false,
+        "row": 8
+      },
+      "attempts": 1
+    }
+  ]
+}

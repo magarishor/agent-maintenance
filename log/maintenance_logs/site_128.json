@@ -1,0 +1,154 @@
+﻿{
+    "step_log":  [
+                     {
+                         "step_number":  1,
+                         "details":  "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": []\n}\n```",
+                         "status":  "success",
+                         "step_name":  "Health Check (Initial)"
+                     },
+                     {
+                         "step_number":  2,
+                         "details":  {
+                                         "plugins_available":  7,
+                                         "core_available":  true,
+                                         "core_version":  "7.0.4 → 7.1"
+                                     },
+                         "status":  "success",
+                         "step_name":  "Check for Updates"
+                     },
+                     {
+                         "step_number":  5,
+                         "details":  "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": [],\n  \"site\": \"The Women\u0027s Center (wcorlando.com)\",\n  \"health_check\": {\n    \"overall\": \"PASSED\",\n    \"all_passed\": true,\n    \"checks\": {\n      \"homepage\": \"passed\",\n      \"admin\": \"passed\",\n      \"rest_api\": \"passed\",\n      \"php_errors\": \"passed\"\n    }\n  },\n  \"timestamp\": \"2026-09-07 09:37:30\"\n}\n```",
+                         "status":  "success",
+                         "step_name":  "Health Check (Final)"
+                     },
+                     {
+                         "attempts":  1,
+                         "step_number":  6,
+                         "details":  {
+                                         "details":  "```json\n{\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected — all versions match the stored snapshot. Snapshot refreshed — 15 plugin(s) recorded as new baseline.\",\n  \"success\": true,\n  \"snapshot_updated\": true,\n  \"snapshot_plugin_count\": 15,\n  \"batch_id\": \"batch_1ef5858f92a5067f\"\n}\n```",
+                                         "found":  false
+                                     },
+                         "status":  "success",
+                         "step_name":  "Check External Updates"
+                     },
+                     {
+                         "attempts":  1,
+                         "step_number":  7,
+                         "details":  {
+                                         "synced":  true,
+                                         "row":  16
+                                     },
+                         "status":  "success",
+                         "step_name":  "Sync to Google Sheet"
+                     }
+                 ],
+    "steps":  {
+                  "core_update_request":  {
+                                              "target_version":  "7.0.4 → 7.1",
+                                              "batch_id":  "N/A",
+                                              "status":  "error",
+                                              "details":  {
+                                                              "status":  "error",
+                                                              "target_version":  "7.1",
+                                                              "batch_id":  "N/A",
+                                                              "message":  "update-core-tool call failed with \"An internal server error occurred.\" on all 3 attempts (id=128, version=\"7.0.4 → 7.1\" twice, then version=\"7.1\" once, create_backup=true, run_health_checks=true each time). No batch_id or status was returned by the tool — this is a genuine MCP server-side failure, not a malformed request. Core update for site 128 was NOT queued; needs retry once the smartsites-maintenance server issue is resolved."
+                                                          }
+                                          },
+                  "initial_health":  {
+                                         "status":  "healthy",
+                                         "details":  "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": []\n}\n```"
+                                     },
+                  "final_health":  {
+                                       "status":  "healthy",
+                                       "details":  "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": [],\n  \"site\": \"The Women\u0027s Center (wcorlando.com)\",\n  \"health_check\": {\n    \"overall\": \"PASSED\",\n    \"all_passed\": true,\n    \"checks\": {\n      \"homepage\": \"passed\",\n      \"admin\": \"passed\",\n      \"rest_api\": \"passed\",\n      \"php_errors\": \"passed\"\n    }\n  },\n  \"timestamp\": \"2026-09-07 09:37:30\"\n}\n```"
+                                   },
+                  "plugin_update_request":  {
+                                                "status":  "queued",
+                                                "batch_id":  null,
+                                                "details":  {
+                                                                "status":  "queued",
+                                                                "batch_id":  "batch_0f6f709e2ad63144",
+                                                                "message":  "Site 128 (The Women\u0027s Center, wcorlando.com): initial call to update-all-plugins-tool failed with \"No recent backups found. Please run a full backup before proceeding.\" Ran create-backup-tool (backup_type=full), which queued batch_2e5d4ebece4182c1 / job_b4e6115c87127684. Polled check-batch-status-tool (with check_directly_on_site=true) across several 2-minute intervals; the backup job completed successfully at 2026-09-07 09:21:52 as backup_id bkp_full_2026_09_07_09_16_17_dcpyxojh. Re-ran update-all-plugins-tool (id=128, create_backup=true, run_health_checks=true), which succeeded and queued batch_0f6f709e2ad63144 covering all 7 available plugin updates (Activity Log, Agile Store Locator, GTranslate, Redirection, Site Reviews, Yoast SEO, Advanced Custom Fields PRO) with health checks enabled. No plugins were blocked. Batch is now processing — needs monitoring via check-batch-status-tool until it reaches a terminal state (success/failed/cancelled).",
+                                                                "plugins_updated":  7
+                                                            }
+                                            },
+                  "external_updates":  {
+                                           "details":  "```json\n{\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected — all versions match the stored snapshot. Snapshot refreshed — 15 plugin(s) recorded as new baseline.\",\n  \"success\": true,\n  \"snapshot_updated\": true,\n  \"snapshot_plugin_count\": 15,\n  \"batch_id\": \"batch_1ef5858f92a5067f\"\n}\n```",
+                                           "found":  false
+                                       },
+                  "update_check":  {
+                                       "plugins_available":  7,
+                                       "core_available":  true,
+                                       "core_version":  "7.0.4 → 7.1",
+                                       "details":  {
+                                                       "plugins_available":  7,
+                                                       "message":  "Update check completed for site 128 (The Women\u0027s Center). 7 plugin updates and 1 core update available.",
+                                                       "plugin_list":  [
+                                                                           {
+                                                                               "current":  "2.12.1",
+                                                                               "new":  "2.14.1",
+                                                                               "name":  "Activity Log"
+                                                                           },
+                                                                           {
+                                                                               "current":  "1.7.3",
+                                                                               "new":  "1.8.3",
+                                                                               "name":  "Agile Store Locator"
+                                                                           },
+                                                                           {
+                                                                               "current":  "3.1.1",
+                                                                               "new":  "3.1.2",
+                                                                               "name":  "GTranslate"
+                                                                           },
+                                                                           {
+                                                                               "current":  "5.9.0",
+                                                                               "new":  "5.10.0",
+                                                                               "name":  "Redirection"
+                                                                           },
+                                                                           {
+                                                                               "current":  "8.2.2",
+                                                                               "new":  "8.3.0",
+                                                                               "name":  "Site Reviews"
+                                                                           },
+                                                                           {
+                                                                               "current":  "28.3",
+                                                                               "new":  "28.4",
+                                                                               "name":  "Yoast SEO"
+                                                                           },
+                                                                           {
+                                                                               "current":  "6.8.8",
+                                                                               "new":  "6.8.9",
+                                                                               "name":  "Advanced Custom Fields PRO",
+                                                                               "note":  "Third-party (license verified)"
+                                                                           }
+                                                                       ],
+                                                       "core_available":  true,
+                                                       "core_version":  "7.0.4 → 7.1"
+                                                   }
+                                   },
+                  "final_report_chat":  {
+                                            "sent":  true,
+                                            "alert":  true
+                                        },
+                  "sheet_sync":  {
+                                     "synced":  true,
+                                     "row":  16
+                                 }
+              },
+    "batch_jobs":  [
+                       {
+                           "checks":  5,
+                           "final_status":  "timeout",
+                           "batch_id":  "N/A",
+                           "type":  "core_update",
+                           "details":  {
+                                           "error":  "Batch timed out",
+                                           "status":  "timeout"
+                                       }
+                       }
+                   ],
+    "row":  16,
+    "site_id":  "128",
+    "url":  "https://wcorlando.com/",
+    "status":  "completed"
+}

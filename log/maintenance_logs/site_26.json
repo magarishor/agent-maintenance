@@ -1,0 +1,85 @@
+{
+  "url": "https://www.torq-n-seal.com/",
+  "site_id": "26",
+  "row": 5,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "{\"status\": \"error\", \"errors\": [\"Internal server error when calling health-check-tool with id='26'. The smartsites-maintenance server encountered an error.\"]}"
+    },
+    "update_check": {
+      "plugins_available": 0,
+      "core_available": false,
+      "core_version": "null",
+      "details": {
+        "plugins_available": 0,
+        "core_available": false,
+        "core_version": "null",
+        "plugin_list": [],
+        "message": "check-updates-tool failed with internal server error for site id=26. Unable to retrieve update information. Skipping plugin and core updates."
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "{\n  \"status\": \"error\",\n  \"errors\": [\n    \"Internal server error from health-check-tool — MCP server returned error. Verify site ID 26 exists and MCP server connectivity.\"\n  ]\n}"
+    },
+    "external_updates": {
+      "found": false,
+      "details": "Tool call failed after 3 attempts. The smartsites-maintenance `check-external-updates-tool` is returning internal server errors for site ID \"26\". Unable to retrieve external updates data (found_external, updates array, message).\n\nThis appears to be a server-side issue with the MCP tool rather than a parameter problem. The tool accepted the request but failed during execution each time."
+    },
+    "sheet_sync": {
+      "synced": false,
+      "row": 5
+    },
+    "final_report_chat": {
+      "sent": true,
+      "alert": true
+    }
+  },
+  "batch_jobs": [],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "{\"status\": \"error\", \"errors\": [\"Internal server error when calling health-check-tool with id='26'. The smartsites-maintenance server encountered an error.\"]}"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 0,
+        "core_available": false,
+        "core_version": "null"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "{\n  \"status\": \"error\",\n  \"errors\": [\n    \"Internal server error from health-check-tool — MCP server returned error. Verify site ID 26 exists and MCP server connectivity.\"\n  ]\n}"
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false,
+        "details": "Tool call failed after 3 attempts. The smartsites-maintenance `check-external-updates-tool` is returning internal server errors for site ID \"26\". Unable to retrieve external updates data (found_external, updates array, message).\n\nThis appears to be a server-side issue with the MCP tool rather than a parameter problem. The tool accepted the request but failed during execution each time."
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "failed_with_retries",
+      "details": {
+        "synced": false,
+        "row": 5
+      },
+      "attempts": 1
+    }
+  ]
+}

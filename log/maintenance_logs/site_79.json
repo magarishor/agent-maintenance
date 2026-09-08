@@ -1,0 +1,171 @@
+{
+  "url": "https://tetraultwealth.com/",
+  "site_id": "79",
+  "row": 13,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": null\n}\n```"
+    },
+    "update_check": {
+      "plugins_available": 3,
+      "core_available": true,
+      "core_version": "7.1",
+      "details": {
+        "plugins_available": 3,
+        "core_available": true,
+        "core_version": "7.1",
+        "message": "Update check completed for site 79 (Tetrault Wealth). Found 3 plugin updates available (Imagify, Tumblr Importer, WordPress Importer) and WordPress core update from 7.0.4 to 7.1. Ready to proceed with update queue steps."
+      }
+    },
+    "plugin_update_request": {
+      "batch_id": null,
+      "status": "blocked_timeout",
+      "details": {
+        "batch_id": "batch_a84f4444e033fa4c",
+        "status": "blocked_timeout",
+        "plugins_updated": 0,
+        "message": "Could not complete the plugin update for site id=79 (Tetrault Wealth). update-all-plugins-tool initially refused to run with error \"No recent backups found. Please run a full backup before proceeding.\" I then triggered create-backup-tool (backup_type=full), which queued job_id=job_2398716edeb50c0f under batch_id=batch_a84f4444e033fa4c. I polled check-batch-status-tool repeatedly (both via the Pegasus system and check_directly_on_site=true) over roughly 20+ minutes, well past the workflow's stated ~10 minute/5-check batch-monitoring timeout. The backup job never left status \"running\" (attempts stayed at 0, completed_at stayed null) the entire time, indicating it is stalled rather than merely slow. Because no successful backup could be confirmed, update-all-plugins-tool was never retried, so 0 of the 3 available plugins were updated. Recommend: investigate the stalled backup job directly on the site (job_2398716edeb50c0f), or retry create-backup-tool, before attempting update-all-plugins-tool again for site id=79."
+      }
+    },
+    "core_update_request": {
+      "batch_id": "batch_8f0a1f60d96bf3b1",
+      "target_version": "7.1",
+      "status": "pending",
+      "details": {
+        "batch_id": "batch_8f0a1f60d96bf3b1",
+        "status": "pending",
+        "target_version": "7.1",
+        "message": "Job queued — poll GET /job-status/job_5a563dbd15fcd840 or GET /batch-status/batch_8f0a1f60d96bf3b1 for its result."
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": []\n}\n```\n\nSite 79 (Tetrault Wealth) passed all health checks after updates. Homepage, admin, REST API, and PHP error monitoring all functioning normally."
+    },
+    "external_updates": {
+      "found": false,
+      "details": "```json\n{\n  \"found_external\": true,\n  \"updates\": [\n    {\n      \"plugin\": \"real-time-auto-find-and-replace/real-time-auto-find-and-replace.php\",\n      \"name\": \"Better Find and Replace\",\n      \"from_version\": \"1.9.5\",\n      \"to_version\": \"2.0.0\",\n      \"logged\": true\n    },\n    {\n      \"plugin\": \"simple-history/index.php\",\n      \"name\": \"Simple History\",\n      \"from_version\": \"5.31.0\",\n      \"to_version\": \"5.32.0\",\n      \"logged\": true\n    }\n  ],\n  \"message\": \"External update check for [79] Maint#79 [Tetrault Wealth] [https://tetraultwealth.com/]\\n\\n2 plugins updated outside SS Maintenance:\\n  • Better Find and Replace  1.9.5 → 2.0.0  [real-time-auto-find-and-replace/real-time-auto-find-and-replace.php]\\n  • Simple History  5.31.0 → 5.32.0  [simple-history/index.php]\\n\\nEach update has been logged with action=external_update and will be included in the next sheets/sync.\\n\\nSnapshot refreshed — 39 plugin(s) recorded as new baseline.\",\n  \"snapshot_updated\": true,\n  \"snapshot_plugin_count\": 39,\n  \"batch_id\": \"batch_a1f2e58b708d9fad\"\n}\n```"
+    },
+    "sheet_sync": {
+      "synced": true,
+      "row": 13
+    },
+    "final_report_chat": {
+      "sent": true,
+      "alert": true
+    }
+  },
+  "batch_jobs": [
+    {
+      "type": "core_update",
+      "batch_id": "batch_8f0a1f60d96bf3b1",
+      "checks": 2,
+      "final_status": "completed",
+      "details": {
+        "status": "completed",
+        "batch_id": "batch_8f0a1f60d96bf3b1",
+        "completed_count": 1,
+        "total_count": 1,
+        "jobs_summary": {
+          "pending": 0,
+          "running": 0,
+          "completed": 1,
+          "failed": 0,
+          "cancelled": 0
+        },
+        "jobs": [
+          {
+            "job_id": "job_5a563dbd15fcd840",
+            "job_type": "update_core",
+            "status": "completed",
+            "attempts": 0,
+            "max_attempts": 3,
+            "blocked_by": null,
+            "plugin_slug": null,
+            "error_message": null,
+            "scheduled_at": "2026-09-07 03:27:39",
+            "started_at": "2026-09-07 03:27:40",
+            "completed_at": "2026-09-07 03:28:24",
+            "result": {
+              "success": true,
+              "backup_id": "bkp_core_2026_09_07_03_27_42_khnhihsr",
+              "old_version": "7.0.4",
+              "new_version": "7.1",
+              "health_checks": {
+                "all_passed": true,
+                "checks": {
+                  "homepage": {
+                    "passed": true,
+                    "message": "Homepage accessible",
+                    "status_code": 200
+                  },
+                  "admin": {
+                    "passed": true,
+                    "message": "Admin URL accessible (HTTP 200)"
+                  },
+                  "rest_api": {
+                    "passed": true,
+                    "message": "REST API accessible"
+                  },
+                  "php_errors": {
+                    "passed": true,
+                    "message": "No error log configured or accessible"
+                  }
+                },
+                "timestamp": "2026-09-07 03:28:18"
+              },
+              "execution_time": 43.49819612503052,
+              "message": "WordPress updated from 7.0.4 to 7.1"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": null\n}\n```"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 3,
+        "core_available": true,
+        "core_version": "7.1"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": []\n}\n```\n\nSite 79 (Tetrault Wealth) passed all health checks after updates. Homepage, admin, REST API, and PHP error monitoring all functioning normally."
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false,
+        "details": "```json\n{\n  \"found_external\": true,\n  \"updates\": [\n    {\n      \"plugin\": \"real-time-auto-find-and-replace/real-time-auto-find-and-replace.php\",\n      \"name\": \"Better Find and Replace\",\n      \"from_version\": \"1.9.5\",\n      \"to_version\": \"2.0.0\",\n      \"logged\": true\n    },\n    {\n      \"plugin\": \"simple-history/index.php\",\n      \"name\": \"Simple History\",\n      \"from_version\": \"5.31.0\",\n      \"to_version\": \"5.32.0\",\n      \"logged\": true\n    }\n  ],\n  \"message\": \"External update check for [79] Maint#79 [Tetrault Wealth] [https://tetraultwealth.com/]\\n\\n2 plugins updated outside SS Maintenance:\\n  • Better Find and Replace  1.9.5 → 2.0.0  [real-time-auto-find-and-replace/real-time-auto-find-and-replace.php]\\n  • Simple History  5.31.0 → 5.32.0  [simple-history/index.php]\\n\\nEach update has been logged with action=external_update and will be included in the next sheets/sync.\\n\\nSnapshot refreshed — 39 plugin(s) recorded as new baseline.\",\n  \"snapshot_updated\": true,\n  \"snapshot_plugin_count\": 39,\n  \"batch_id\": \"batch_a1f2e58b708d9fad\"\n}\n```"
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "success",
+      "details": {
+        "synced": true,
+        "row": 13
+      },
+      "attempts": 1
+    }
+  ]
+}

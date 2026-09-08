@@ -1,0 +1,133 @@
+{
+  "url": "https://www.homsqr.com/",
+  "site_id": "75",
+  "row": 5,
+  "status": "completed",
+  "steps": {
+    "initial_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": []\n}\n```"
+    },
+    "update_check": {
+      "plugins_available": 0,
+      "core_available": false,
+      "core_version": "7.0.3",
+      "details": {
+        "plugins_available": 0,
+        "core_available": false,
+        "core_version": "7.0.3",
+        "message": "Update check complete for site 75 (HomeSquarePro). 6 plugin updates available but all BLOCKED due to license/third-party server restrictions. WordPress core is current. No plugin or core updates will be applied at this time.",
+        "plugin_list": [
+          {
+            "slug": "wp-rocket/wp-rocket.php",
+            "name": "WP Rocket",
+            "current_version": "3.23.1",
+            "new_version": "3.23.2.1",
+            "can_update": false,
+            "status": "BLOCKED"
+          },
+          {
+            "slug": "js_composer/js_composer.php",
+            "name": "WPBakery Page Builder",
+            "current_version": "7.8",
+            "new_version": "9.0.1",
+            "can_update": false,
+            "status": "BLOCKED"
+          },
+          {
+            "slug": "Ultimate_VC_Addons/Ultimate_VC_Addons.php",
+            "name": "Ultimate Addons for WPBakery Page Builder",
+            "current_version": "3.19.22",
+            "new_version": "3.21.5",
+            "can_update": false,
+            "status": "BLOCKED"
+          },
+          {
+            "slug": "seo-by-rank-math-pro/rank-math-pro.php",
+            "name": "Rank Math SEO PRO",
+            "current_version": "3.0.117",
+            "new_version": "3.0.118",
+            "can_update": false,
+            "status": "BLOCKED"
+          },
+          {
+            "slug": "gravityforms/gravityforms.php",
+            "name": "Gravity Forms",
+            "current_version": "2.10.5",
+            "new_version": "3.0.2",
+            "can_update": false,
+            "status": "BLOCKED"
+          },
+          {
+            "slug": "advanced-custom-fields-pro/acf.php",
+            "name": "Advanced Custom Fields PRO",
+            "current_version": "6.8.6",
+            "new_version": "6.8.7",
+            "can_update": false,
+            "status": "BLOCKED"
+          }
+        ]
+      }
+    },
+    "final_health": {
+      "status": "healthy",
+      "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": []\n}\n```\n\n**Final health check for site 75 (HomeSquarePro):** All systems passing. Homepage, Admin, REST API, and PHP error checks all passed. Site is confirmed healthy post-update."
+    },
+    "external_updates": {
+      "found": false,
+      "details": "```json\n{\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected \u2014 all versions match the stored snapshot. Snapshot refreshed \u2014 36 plugin(s) recorded as new baseline.\",\n  \"snapshot_plugin_count\": 36,\n  \"batch_id\": \"batch_e253aae1b956b97a\"\n}\n```"
+    },
+    "sheet_sync": {
+      "synced": true,
+      "row": 5
+    },
+    "final_report_email": {
+      "sent": true
+    }
+  },
+  "batch_jobs": [],
+  "step_log": [
+    {
+      "step_number": 1,
+      "step_name": "Health Check (Initial)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"PASSED\",\n  \"errors\": []\n}\n```"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Check for Updates",
+      "status": "success",
+      "details": {
+        "plugins_available": 0,
+        "core_available": false,
+        "core_version": "7.0.3"
+      }
+    },
+    {
+      "step_number": 5,
+      "step_name": "Health Check (Final)",
+      "status": "success",
+      "details": "```json\n{\n  \"status\": \"healthy\",\n  \"errors\": []\n}\n```\n\n**Final health check for site 75 (HomeSquarePro):** All systems passing. Homepage, Admin, REST API, and PHP error checks all passed. Site is confirmed healthy post-update."
+    },
+    {
+      "step_number": 6,
+      "step_name": "Check External Updates",
+      "status": "success",
+      "details": {
+        "found": false,
+        "details": "```json\n{\n  \"found_external\": false,\n  \"updates\": [],\n  \"message\": \"No external plugin updates detected \u2014 all versions match the stored snapshot. Snapshot refreshed \u2014 36 plugin(s) recorded as new baseline.\",\n  \"snapshot_plugin_count\": 36,\n  \"batch_id\": \"batch_e253aae1b956b97a\"\n}\n```"
+      },
+      "attempts": 1
+    },
+    {
+      "step_number": 7,
+      "step_name": "Sync to Google Sheet",
+      "status": "success",
+      "details": {
+        "synced": true,
+        "row": 5
+      },
+      "attempts": 1
+    }
+  ]
+}
