@@ -9,3 +9,5 @@ node_modules/
 *.json.bak
 smartsites-chat-*.json
 maintenance-backups-*.json
+log/
+maintenance_logs/
