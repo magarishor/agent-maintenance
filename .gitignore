@@ -5,7 +5,8 @@ __pycache__/
 .DS_Store
 *.log
 node_modules/
-.claude/
+.claude/agents/
+.claude/settings.local.json
 *.json.bak
 smartsites-chat-*.json
 maintenance-backups-*.json
