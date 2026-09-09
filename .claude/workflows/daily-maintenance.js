@@ -227,10 +227,102 @@ async function processSiteSequence(site, siteNum, total_sites) {
     await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
 
     // ========================================================================
-    // STEP 2: Check for Available Updates
+    // STEP 2a: Create Fresh Backup (Hybrid Strategy - Pre-Backup with Retry)
     // ========================================================================
 
-    log(`  2️⃣ [${siteNum}] Checking for available updates...`)
+    log(`  2️⃣a [${siteNum}] Creating fresh backup before updates...`)
+
+    let preBackupResult = null
+    let backupAttempt = 0
+    const MAX_PRE_BACKUP_ATTEMPTS = 2
+
+    while (preBackupResult === null && backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
+      backupAttempt++
+      log(`  🔄 [${siteNum}] Backup attempt ${backupAttempt}/${MAX_PRE_BACKUP_ATTEMPTS}...`)
+
+      preBackupResult = await agent(
+        `MUST CALL: smartsites-maintenance:create-backup-tool
+Parameters: id="${site.site_id}", backup_type="full"
+
+This fresh backup will be used for rollback if updates fail.
+Attempt ${backupAttempt} of ${MAX_PRE_BACKUP_ATTEMPTS}.
+Return {success: boolean, backup_id: string, message: string}`,
+        {
+          label: `pre-backup-${siteNum}-attempt${backupAttempt}`,
+          phase: 'Maintenance',
+          schema: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              backup_id: { type: 'string' },
+              message: { type: 'string' }
+            },
+            required: ['success', 'message']
+          }
+        }
+      )
+
+      if (preBackupResult?.success) {
+        log(`  ✅ [${siteNum}] Fresh backup ready: ${preBackupResult?.backup_id}`)
+        break
+      }
+
+      // If first attempt failed, wait and retry once
+      if (backupAttempt === 1 && backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
+        log(`  ⚠️  [${siteNum}] Backup attempt 1 failed - waiting before retry...`)
+        log(`  ⏱️  [${siteNum}] Waiting 1 minute before backup retry...`)
+        await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
+      }
+    }
+
+    siteResult.steps.pre_backup = {
+      success: preBackupResult?.success || false,
+      backup_id: preBackupResult?.backup_id,
+      attempts: backupAttempt,
+      details: preBackupResult
+    }
+
+    if (!preBackupResult?.success) {
+      log(`  ❌ [${siteNum}] Pre-backup FAILED after ${backupAttempt} attempts - SKIPPING ALL UPDATES (no safe backup)`)
+      siteResult.step_log.push({
+        step_number: '2a',
+        step_name: 'Pre-Backup Creation',
+        status: 'failed',
+        details: preBackupResult,
+        attempts: backupAttempt,
+        reason: 'Backup creation timeout/failed - skipping plugin/core updates for safety'
+      })
+      siteResult.status = 'completed_with_warning'
+      log(`  💾 [${siteNum}] Saving site log (backup failed)...`)
+      await agent(
+        `Write file: log/maintenance_logs/site_${siteResult.site_id}.json
+Content: ${JSON.stringify(siteResult)}
+Use Python to write. Return {success: true}.`,
+        {
+          label: `log-backup-fail-${siteNum}`,
+          phase: 'Maintenance'
+        }
+      )
+      return siteResult
+    }
+
+    siteResult.step_log.push({
+      step_number: '2a',
+      step_name: 'Pre-Backup Creation',
+      status: 'success',
+      details: { backup_id: preBackupResult?.backup_id },
+      attempts: backupAttempt
+    })
+
+    // Wait 1 minute before next step
+    log(`  ⏱️  [${siteNum}] Waiting 1 minute before next step...`)
+    await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
+
+    // ========================================================================
+    // STEP 3: Check for Available Updates
+    // ========================================================================
+
+    log(`  3️⃣ [${siteNum}] Checking for available updates...`)
 
     const updateCheck = await agent(
       `Previous step (Health Check) returned: ${JSON.stringify(siteResult.steps.initial_health)}
@@ -275,7 +367,7 @@ Return {plugins_available, core_available, core_version, plugin_list}.`,
     log(`  ✅ [${siteNum}] Found ${pluginsAvailable} plugin updates, Core: ${coreAvailable ? 'Yes' : 'No'}`)
 
     // ========================================================================
-    // STEP 3: Update All Plugins (ONLY IF UPDATES AVAILABLE)
+    // STEP 4: Update All Plugins (ONLY IF UPDATES AVAILABLE)
     // ========================================================================
 
     if (pluginsAvailable > 0) {
@@ -283,7 +375,7 @@ Return {plugins_available, core_available, core_version, plugin_list}.`,
       log(`  ⏱️  [${siteNum}] Waiting 1 minute before plugin update step...`)
       await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
 
-      log(`  3️⃣ [${siteNum}] Updating all plugins (${pluginsAvailable})...`)
+      log(`  4️⃣ [${siteNum}] Updating all plugins (${pluginsAvailable})...`)
 
       const pluginUpdate = await agent(
         `Previous steps: Health Check status = ${initialHealthStatus}; Update Check found ${pluginsAvailable} plugin updates available.
@@ -310,74 +402,7 @@ Return {batch_id, status, plugins_updated, message}.`,
 
       let pluginBatchId = pluginUpdate?.batch_id
 
-      // If backup missing, create one and retry
-      if (pluginUpdate?.message?.includes('No recent backups found')) {
-        // Wait 1 minute before backup creation
-        log(`  ⏱️  [${siteNum}] Waiting 1 minute before backup creation...`)
-        await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
-
-        log(`  🔄 [${siteNum}] No backups found — creating backup before retry...`)
-
-        const backupResult = await agent(
-          `Previous steps: Plugin update attempt failed - no recent backups found.
-Site ID: ${site.site_id}
-
-Now call smartsites-maintenance:create-backup-tool with id="${site.site_id}", backup_type="full".
-Return {success: boolean, backup_id: string, message: string}`,
-          {
-            label: `create-backup-${siteNum}`,
-            phase: 'Maintenance',
-            schema: {
-              type: 'object',
-              properties: {
-                success: { type: 'boolean' },
-                backup_id: { type: 'string' },
-                message: { type: 'string' }
-              },
-              required: ['success', 'message']
-            }
-          }
-        )
-
-        if (backupResult?.success) {
-          log(`  ✅ [${siteNum}] Backup created: ${backupResult?.backup_id}`)
-
-          // Wait 1 minute before retry
-          log(`  ⏱️  [${siteNum}] Waiting 1 minute before plugin update retry...`)
-          await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
-
-          log(`  🔄 [${siteNum}] Retrying plugin update...`)
-
-          // Retry plugin update
-          const pluginRetry = await agent(
-            `Previous steps: Backup created successfully with ID ${backupResult?.backup_id}.
-Now retrying plugin update for ${pluginsAvailable} plugins.
-
-Call smartsites-maintenance:update-all-plugins-tool with id="${site.site_id}", create_backup=true, run_health_checks=true.
-Return {batch_id, status, plugins_updated, message}`,
-            {
-              label: `update-plugins-retry-${siteNum}`,
-              phase: 'Maintenance',
-              model: 'sonnet',
-              schema: {
-                type: 'object',
-                properties: {
-                  batch_id: { type: 'string' },
-                  status: { type: 'string' },
-                  plugins_updated: { type: 'number' },
-                  message: { type: 'string' }
-                },
-                required: ['batch_id', 'status', 'message']
-              }
-            }
-          )
-          pluginUpdate = pluginRetry
-          pluginBatchId = pluginRetry?.batch_id
-        } else {
-          log(`  ❌ [${siteNum}] Backup creation failed — skipping plugin update`)
-          pluginBatchId = null
-        }
-      }
+      // Note: Backup already created in Step 2a, so no on-demand backup needed here
 
       siteResult.steps.plugin_update_request = {
         batch_id: pluginBatchId,
@@ -392,7 +417,7 @@ Return {batch_id, status, plugins_updated, message}`,
       }
 
       // ====================================================================
-      // STEP 3a: Monitor Plugin Batch Status (Every 1 minute)
+      // STEP 4a: Monitor Plugin Batch Status (Every 2 minutes)
       // ====================================================================
 
       if (pluginBatchId && pluginBatchId !== 'null' && pluginUpdate?.status !== 'failed') {
@@ -491,7 +516,7 @@ Return ONLY valid JSON (no markdown code fences). Include all job statuses. Exam
     }
 
     // ========================================================================
-    // STEP 4: Update WordPress Core (ONLY IF UPDATES AVAILABLE)
+    // STEP 5: Update WordPress Core (ONLY IF UPDATES AVAILABLE)
     // ========================================================================
 
     if (coreAvailable) {
@@ -499,7 +524,7 @@ Return ONLY valid JSON (no markdown code fences). Include all job statuses. Exam
       log(`  ⏱️  [${siteNum}] Waiting 1 minute before core update step...`)
       await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
 
-      log(`  4️⃣ [${siteNum}] Updating WordPress core to ${coreVersion}...`)
+      log(`  5️⃣ [${siteNum}] Updating WordPress core to ${coreVersion}...`)
 
       const coreUpdate = await agent(
         `Previous steps: Health Check status = ${initialHealthStatus}; Plugins update ${siteResult.batch_jobs.find(b => b.type === 'plugin_update')?.final_status || 'N/A'}; Core update available to version ${coreVersion}.
@@ -541,7 +566,7 @@ Return the exact response from the tool with batch_id, status, target_version, m
       }
 
       // ====================================================================
-      // STEP 4a: Monitor Core Batch Status (Every 1 minute)
+      // STEP 5a: Monitor Core Batch Status (Every 2 minutes)
       // ====================================================================
 
       if (coreBatchId && coreBatchId !== 'null' && coreUpdate?.status !== 'failed') {
@@ -636,14 +661,14 @@ Return ONLY valid JSON (no markdown code fences). Include all job statuses. Exam
     }
 
     // ========================================================================
-    // STEP 5: Final Health Check
+    // STEP 6: Final Health Check
     // ========================================================================
 
     // Wait 1 minute before final health check
     log(`  ⏱️  [${siteNum}] Waiting 1 minute before final health check...`)
     await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
 
-    log(`  5️⃣ [${siteNum}] Running final health check...`)
+    log(`  6️⃣ [${siteNum}] Running final health check...`)
 
     const healthCheck2 = await agent(
       `Previous steps: Initial health = ${initialHealthStatus}; Plugin updates ${siteResult.batch_jobs.find(b => b.type === 'plugin_update')?.final_status || 'N/A'}; Core update ${siteResult.batch_jobs.find(b => b.type === 'core_update')?.final_status || 'N/A'}.
@@ -671,14 +696,14 @@ Return {status, errors}.`,
     log(`  ✅ [${siteNum}] Final Health: ${finalHealthStatus}`)
 
     // ========================================================================
-    // STEP 6: Check External Updates (MANDATORY - DO NOT SKIP)
+    // STEP 7: Check External Updates (MANDATORY - DO NOT SKIP)
     // ========================================================================
 
     // Wait 1 minute before external check
     log(`  ⏱️  [${siteNum}] Waiting 1 minute before external updates check...`)
     await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
 
-    log(`  6️⃣ [${siteNum}] Checking for external updates...`)
+    log(`  7️⃣ [${siteNum}] Checking for external updates...`)
     let externalUpdatesResult = null
     let externalRetryCount = 0
     let externalSuccess = false
@@ -734,14 +759,14 @@ Return the exact response from the tool with found_external (boolean), updates (
     })
 
     // ========================================================================
-    // STEP 7: Sync to Google Sheet (MANDATORY - DO NOT SKIP)
+    // STEP 8: Sync to Google Sheet (MANDATORY - DO NOT SKIP)
     // ========================================================================
 
     // Wait 1 minute before sheet sync
     log(`  ⏱️  [${siteNum}] Waiting 1 minute before sheet sync...`)
     await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
 
-    log(`  7️⃣ [${siteNum}] Syncing results to Google Sheet...`)
+    log(`  8️⃣ [${siteNum}] Syncing results to Google Sheet...`)
     let sheetSyncResult = null
     let sheetRetryCount = 0
     let sheetSuccess = false
@@ -807,14 +832,14 @@ Return {synced: boolean, message: string}.`,
     })
 
     // ========================================================================
-    // STEP 8: Send Final Site Report Email
+    // STEP 9: Send Final Site Report to Google Chat
     // ========================================================================
 
-    // Wait 1 minute before final email
-    log(`  ⏱️  [${siteNum}] Waiting 1 minute before final report email...`)
+    // Wait 1 minute before final report
+    log(`  ⏱️  [${siteNum}] Waiting 1 minute before final report...`)
     await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
 
-    log(`  8️⃣ [${siteNum}] Sending final site maintenance report...`)
+    log(`  9️⃣ [${siteNum}] Sending final site maintenance report to Google Chat...`)
 
     // Only send alert if: actual issues AND there are updates available
     // Don't send if: no issues OR (no plugins available AND no core available)
