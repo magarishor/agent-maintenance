@@ -988,15 +988,12 @@ for (let batchStart = 0; batchStart < sites.length; batchStart += PARALLEL_BATCH
 
   log(`📦 Starting batch ${batchNumber} with ${batch.length} sites (${batchStartNum}-${Math.min(batchStartNum + batch.length - 1, total_sites)})...`)
 
-  const batchStartTime = Date.now()
-
   // Process all sites in this batch concurrently using Promise.all()
   const batchResults = await Promise.all(
     batch.map((site, idx) => processSiteSequence(site, batchStartNum + idx, total_sites))
   )
 
-  const batchTime = (Date.now() - batchStartTime) / 1000
-  log(`✅ Batch ${batchNumber} completed in ${batchTime.toFixed(1)}s`)
+  log(`✅ Batch ${batchNumber} completed (${batch.length} sites processed)`)
 
   // Add results to day summary
   for (const siteResult of batchResults) {
