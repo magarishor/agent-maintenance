@@ -16,7 +16,7 @@ export const meta = {
 //
 // 1. Health Check (initial)
 // 2. Check for updates available
-// 3. IF plugins available → Update plugins + Monitor batch (2-min intervals)
+// 3. IF plugins available → Update plugins SEQUENTIALLY (one-by-one with per-plugin backup & health checks)
 // 4. IF core available → Update core + Monitor batch (2-min intervals)
 // 5. Health Check (final) - MANDATORY
 // 6. Check for external updates - MANDATORY (retry 3x if fails)
@@ -41,6 +41,12 @@ const BATCH_DELAY = 30_000           // 30 seconds between batches (API cooldown
 const MAX_BATCH_CHECKS = 5           // Max 5 checks = 10 minutes at 2-minute intervals
 const MAX_RETRIES = 3                // Max retries for external updates & sheet sync
 const REPORT_EMAIL = 'maintenance@smartsites.com'
+
+// BACKUP & PLUGIN UPDATE IMPROVEMENTS
+const PRE_BACKUP_INITIAL_TIMEOUT = 60_000    // 1 minute for initial backup attempt
+const PRE_BACKUP_RETRY_TIMEOUT = 180_000     // 3 minutes for retry (extended timeout)
+const INTER_PLUGIN_WAIT = 300_000            // 5 minutes between individual plugin updates
+const PLUGIN_UPDATE_INDIVIDUAL = true        // NEW: Sequential individual updates instead of bulk
 
 // ============================================================================
 // PHASE 1: LOAD TODAY'S SITES
@@ -268,11 +274,11 @@ Return {success: boolean, backup_id: string, message: string}`,
         break
       }
 
-      // If first attempt failed, wait and retry once
+      // If first attempt failed, wait and retry with EXTENDED timeout
       if (backupAttempt === 1 && backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
-        log(`  ⚠️  [${siteNum}] Backup attempt 1 failed - waiting before retry...`)
-        log(`  ⏱️  [${siteNum}] Waiting 1 minute before backup retry...`)
-        await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
+        log(`  ⚠️  [${siteNum}] Backup attempt 1 failed - retrying with extended timeout...`)
+        log(`  ⏱️  [${siteNum}] Waiting 3 minutes before backup retry (extended window)...`)
+        await new Promise(resolve => setTimeout(resolve, PRE_BACKUP_RETRY_TIMEOUT))
       }
     }
 
@@ -376,141 +382,246 @@ Return {plugins_available, core_available, core_version, plugin_list}.`,
       log(`  ⏱️  [${siteNum}] Waiting 1 minute before plugin update step...`)
       await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
 
-      log(`  4️⃣ [${siteNum}] Updating all plugins (${pluginsAvailable})...`)
+      log(`  4️⃣ [${siteNum}] Updating plugins sequentially (${pluginsAvailable} total)...`)
 
-      const pluginUpdate = await agent(
-        `Previous steps: Health Check status = ${initialHealthStatus}; Update Check found ${pluginsAvailable} plugin updates available.
+      // NEW: Sequential individual plugin updates with per-plugin backup & health checks
+      const pluginResults = []
+      let pluginSuccessCount = 0
+      let pluginFailureCount = 0
 
-Now call smartsites-maintenance:update-all-plugins-tool with id="${site.site_id}", create_backup=true, run_health_checks=true.
-Based on health status and available plugins (${pluginsAvailable}), proceed with update.
-Return {batch_id, status, plugins_updated, message}.`,
-        {
-          label: `update-plugins-${siteNum}`,
-          phase: 'Maintenance',
-          model: 'sonnet',
-          schema: {
-            type: 'object',
-            properties: {
-              batch_id: { type: 'string' },
-              status: { type: 'string' },
-              plugins_updated: { type: 'number' },
-              message: { type: 'string' }
-            },
-            required: ['batch_id', 'status', 'message']
+      if (PLUGIN_UPDATE_INDIVIDUAL) {
+        // Sequential individual updates - smoother error handling
+        for (let pluginIdx = 1; pluginIdx <= pluginsAvailable; pluginIdx++) {
+          try {
+            log(`  📦 [${siteNum}] Plugin ${pluginIdx}/${pluginsAvailable}...`)
+
+            // Step 1: Per-plugin backup
+            const pluginBackupResult = await agent(
+              `For site ID ${site.site_id}, create a targeted backup before updating plugin ${pluginIdx}.
+Call smartsites-maintenance:create-backup-tool with backup_type="plugin_safe".
+Return {success: boolean, backup_id: string, message: string}.`,
+              {
+                label: `plugin-backup-${siteNum}-${pluginIdx}`,
+                phase: 'Maintenance',
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    backup_id: { type: 'string' },
+                    message: { type: 'string' }
+                  },
+                  required: ['success', 'message']
+                }
+              }
+            )
+
+            if (!pluginBackupResult?.success) {
+              log(`  ⚠️  [${siteNum}] Plugin ${pluginIdx}: Backup failed, skipping`)
+              pluginResults.push({ plugin: pluginIdx, status: 'skipped', reason: 'backup_failed' })
+              continue
+            }
+
+            // Step 2: Update single plugin
+            const singlePluginUpdate = await agent(
+              `For site ID ${site.site_id}, update plugin number ${pluginIdx} of ${pluginsAvailable}.
+Call smartsites-maintenance:update-plugin-tool for the specific plugin.
+Return {success: boolean, plugin_name: string, message: string}.`,
+              {
+                label: `update-plugin-${siteNum}-${pluginIdx}`,
+                phase: 'Maintenance',
+                model: 'sonnet',
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    plugin_name: { type: 'string' },
+                    message: { type: 'string' }
+                  },
+                  required: ['success', 'message']
+                }
+              }
+            )
+
+            if (!singlePluginUpdate?.success) {
+              log(`  ❌ [${siteNum}] Plugin ${pluginIdx}: Update failed, rolling back...`)
+              // Attempt rollback
+              await agent(
+                `For site ID ${site.site_id}, rollback to backup ${pluginBackupResult?.backup_id}.
+Call smartsites-maintenance:rollback-tool.
+Return {success: boolean, message: string}.`,
+                {
+                  label: `rollback-plugin-${siteNum}-${pluginIdx}`,
+                  phase: 'Maintenance'
+                }
+              )
+              pluginResults.push({ plugin: pluginIdx, status: 'failed', reason: 'update_failed' })
+              pluginFailureCount++
+              continue
+            }
+
+            // Step 3: Post-update health check
+            const postPluginHealth = await agent(
+              `For site ID ${site.site_id}, run a health check after plugin ${pluginIdx} update.
+Call smartsites-maintenance:health-check-tool.
+Return {passed: boolean, message: string, checks: object}.`,
+              {
+                label: `health-plugin-${siteNum}-${pluginIdx}`,
+                phase: 'Maintenance'
+              }
+            )
+
+            if (!postPluginHealth?.passed) {
+              log(`  ❌ [${siteNum}] Plugin ${pluginIdx}: Health check failed, rolling back...`)
+              // Rollback on health failure
+              await agent(
+                `For site ID ${site.site_id}, rollback to backup ${pluginBackupResult?.backup_id}.
+Call smartsites-maintenance:rollback-tool.
+Return {success: boolean, message: string}.`,
+                {
+                  label: `rollback-health-${siteNum}-${pluginIdx}`,
+                  phase: 'Maintenance'
+                }
+              )
+              pluginResults.push({ plugin: pluginIdx, status: 'failed', reason: 'health_check_failed' })
+              pluginFailureCount++
+              continue
+            }
+
+            // Success!
+            log(`  ✅ [${siteNum}] Plugin ${pluginIdx}: Updated successfully`)
+            pluginResults.push({ plugin: pluginIdx, status: 'success', name: singlePluginUpdate?.plugin_name })
+            pluginSuccessCount++
+
+            // Wait before next plugin (5 minutes)
+            if (pluginIdx < pluginsAvailable) {
+              log(`  ⏱️  [${siteNum}] Waiting 5 minutes before next plugin...`)
+              await new Promise(resolve => setTimeout(resolve, INTER_PLUGIN_WAIT))
+            }
+
+          } catch (error) {
+            log(`  ❌ [${siteNum}] Plugin ${pluginIdx}: Unexpected error`)
+            pluginResults.push({ plugin: pluginIdx, status: 'error', message: error.message })
+            pluginFailureCount++
           }
         }
-      )
 
-      let pluginBatchId = pluginUpdate?.batch_id
+        siteResult.steps.plugin_update_request = {
+          strategy: 'sequential_individual',
+          total: pluginsAvailable,
+          succeeded: pluginSuccessCount,
+          failed: pluginFailureCount,
+          details: pluginResults,
+        }
 
-      // Note: Backup already created in Step 2a, so no on-demand backup needed here
+        log(`  📊 [${siteNum}] Plugin update complete: ${pluginSuccessCount}/${pluginsAvailable} succeeded`)
 
-      siteResult.steps.plugin_update_request = {
-        batch_id: pluginBatchId,
-        status: pluginUpdate?.status,
-        details: pluginUpdate,
-      }
+      } else {
+        // FALLBACK: Original bulk update strategy (if sequential disabled)
+        const pluginUpdate = await agent(
+          `Previous steps: Health Check status = ${initialHealthStatus}; Update Check found ${pluginsAvailable} plugin updates available.
+Now call smartsites-maintenance:update-all-plugins-tool with id="${site.site_id}", create_backup=false, run_health_checks=true.
+Return {batch_id, status, plugins_updated, message}.`,
+          {
+            label: `update-plugins-bulk-${siteNum}`,
+            phase: 'Maintenance',
+            model: 'sonnet',
+            schema: {
+              type: 'object',
+              properties: {
+                batch_id: { type: 'string' },
+                status: { type: 'string' },
+                plugins_updated: { type: 'number' },
+                message: { type: 'string' }
+              },
+              required: ['batch_id', 'status', 'message']
+            }
+          }
+        )
 
-      if (!pluginBatchId || pluginBatchId === 'null' || pluginUpdate?.status === 'error') {
-        log(`  ⚠️  [${siteNum}] Plugin update failed — skipping monitoring`)
-      } else if (pluginBatchId && pluginBatchId !== 'null') {
-        log(`  📦 [${siteNum}] Plugin batch created: ${pluginBatchId}`)
-      }
+        let pluginBatchId = pluginUpdate?.batch_id
 
-      // ====================================================================
-      // STEP 4a: Monitor Plugin Batch Status (Every 2 minutes)
-      // ====================================================================
+        siteResult.steps.plugin_update_request = {
+          batch_id: pluginBatchId,
+          status: pluginUpdate?.status,
+          details: pluginUpdate,
+        }
 
-      if (pluginBatchId && pluginBatchId !== 'null' && pluginUpdate?.status !== 'failed') {
-        log(`  ⏳ [${siteNum}] Monitoring plugin batch status...`)
+        if (!pluginBatchId || pluginBatchId === 'null' || pluginUpdate?.status === 'error') {
+          log(`  ⚠️  [${siteNum}] Plugin update failed — skipping monitoring`)
+        } else if (pluginBatchId && pluginBatchId !== 'null') {
+          log(`  📦 [${siteNum}] Plugin batch created: ${pluginBatchId}`)
 
-        let pluginBatchComplete = false
-        let pluginCheckCount = 0
-        let pluginFinalStatus = null
+          // Monitor batch
+          if (pluginBatchId && pluginBatchId !== 'null' && pluginUpdate?.status !== 'failed') {
+            log(`  ⏳ [${siteNum}] Monitoring plugin batch status...`)
 
-        while (!pluginBatchComplete && pluginCheckCount < MAX_BATCH_CHECKS) {
-          pluginCheckCount++
+            let pluginBatchComplete = false
+            let pluginCheckCount = 0
+            let pluginFinalStatus = null
 
-          // STRICT: Always 2 minutes (120s) between checks - DO NOT VARY
-          const waitTime = BATCH_CHECK_INTERVAL
+            while (!pluginBatchComplete && pluginCheckCount < MAX_BATCH_CHECKS) {
+              pluginCheckCount++
+              const waitTime = BATCH_CHECK_INTERVAL
 
-          log(`  ⏱️  [${siteNum}] Waiting ${waitTime/1000}s before check #${pluginCheckCount}...`)
-          await new Promise(resolve => setTimeout(resolve, waitTime))
+              log(`  ⏱️  [${siteNum}] Waiting ${waitTime/1000}s before check #${pluginCheckCount}...`)
+              await new Promise(resolve => setTimeout(resolve, waitTime))
 
-          const queueStatus = await agent(
-            `MUST CALL: smartsites-maintenance:check-batch-status-tool
+              const queueStatus = await agent(
+                `MUST CALL: smartsites-maintenance:check-batch-status-tool
 Parameters: id="${site.site_id}", batch_id="${pluginBatchId}"
+Return ONLY valid JSON with status, batch_id, completed_count, total_count.`,
+                {
+                  label: `batch-status-plugins-${siteNum}-check${pluginCheckCount}`,
+                  phase: 'Maintenance',
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: ['string', 'number'] },
+                      batch_id: { type: 'string' },
+                      completed_count: { type: 'number' },
+                      total_count: { type: 'number' }
+                    }
+                  }
+                }
+              )
 
-If this tool is not immediately visible, use ToolSearch with query "select:smartsites-maintenance:check-batch-status-tool" to load it first, then call it. Do NOT compose a fake response.
-Return ONLY valid JSON (no markdown code fences). Include all job statuses. Example: {"status":"completed","batch_id":"batch_123","completed_count":2,"total_count":2,"jobs_summary":{"pending":0,"running":0,"completed":2,"failed":0,"cancelled":0},"jobs":[]}`,
-            {
-              label: `batch-status-plugins-${siteNum}-check${pluginCheckCount}-batch${pluginBatchId.substring(0,8)}`,
-              phase: 'Maintenance',
-              schema: {
-                type: 'object',
-                properties: {
-                  status: { type: ['string', 'number'] },
-                  batch_id: { type: 'string' },
-                  completed_count: { type: 'number' },
-                  total_count: { type: 'number' },
-                  progress: { type: 'object' },
-                  jobs_summary: { type: 'object' },
-                  summary: { type: 'object' },
-                  jobs: { type: 'array' }
-                },
-                required: ['completed_count', 'total_count']
+              try {
+                let status = queueStatus
+                if (typeof queueStatus === 'string' && queueStatus.includes('{')) {
+                  const m = queueStatus.match(/\{[\s\S]*\}/)
+                  if (m) status = JSON.parse(m[0])
+                }
+
+                const c = status?.completed_count ?? 0
+                const tot = status?.total_count ?? 0
+
+                log(`  📊 [${siteNum}] Batch #${pluginCheckCount}: ${c}/${tot} done`)
+
+                if (c >= tot && tot > 0) {
+                  pluginBatchComplete = true
+                  pluginFinalStatus = status
+                  log(`  ✅ [${siteNum}] Plugin batch done`)
+                }
+
+                if (pluginCheckCount >= MAX_BATCH_CHECKS && !pluginBatchComplete) {
+                  log(`  ❌ [${siteNum}] Plugin batch timeout after ${MAX_BATCH_CHECKS} checks`)
+                  pluginBatchComplete = true
+                }
+              } catch (e) {
+                log(`  ⚠️  [${siteNum}] Batch check error`)
+                pluginBatchComplete = true
               }
             }
-          )
 
-          // Parse if markdown-wrapped, extract values
-          try {
-            let status = queueStatus
-            if (typeof queueStatus === 'string' && queueStatus.includes('{')) {
-              const m = queueStatus.match(/\{[\s\S]*\}/)
-              if (m) status = JSON.parse(m[0])
-            }
-
-            const p = status?.progress || {}
-            const j = status?.job_summary || status?.jobs_summary || status?.summary || {}
-            const c = status?.completed_count ?? p?.completed ?? j?.completed ?? 0
-            const f = status?.failed ?? p?.failed ?? j?.failed ?? 0
-            const x = status?.cancelled ?? p?.cancelled ?? j?.cancelled ?? 0
-            const pend = p?.pending ?? j?.pending ?? 0
-            const run = p?.running ?? j?.running ?? 0
-            const tot = status?.total_count ?? p?.total ?? 0
-            const done = (pend === 0 && run === 0) && (c + f + x >= tot) && tot > 0
-
-            log(`  📊 [${siteNum}] Batch #${pluginCheckCount}: ${c}/${tot} done (pend:${pend},run:${run})`)
-
-            if (done) {
-              pluginBatchComplete = true
-              pluginFinalStatus = status
-              log(`  ✅ [${siteNum}] Plugin batch done (${c}✓${f}✗${x}⊘) - stopping checks`)
-            }
-
-            if (pluginCheckCount >= MAX_BATCH_CHECKS && !pluginBatchComplete) {
-              log(`  ❌ [${siteNum}] Plugin batch timeout after ${MAX_BATCH_CHECKS} checks`)
-              pluginBatchComplete = true
-              pluginFinalStatus = { status: 'timeout', error: 'Batch timed out' }
-            }
-          } catch (e) {
-            log(`  ⚠️  [${siteNum}] Batch check error`)
-            pluginBatchComplete = true
+            siteResult.batch_jobs.push({
+              type: 'plugin_update',
+              batch_id: pluginBatchId,
+              checks: pluginCheckCount,
+              final_status: pluginFinalStatus?.status,
+              details: pluginFinalStatus,
+            })
           }
         }
-
-        siteResult.batch_jobs.push({
-          type: 'plugin_update',
-          batch_id: pluginBatchId,
-          checks: pluginCheckCount,
-          final_status: pluginFinalStatus?.status,
-          details: pluginFinalStatus,
-        })
-
-        // ===================================================================
-        // STEP 3b: Skip individual plugin report (only send in daily summary)
-        log(`  ⏭️  [${siteNum}] Plugin update completed (details in daily summary)...`)
       }
     } else {
       log(`  ⏭️  [${siteNum}] No plugin updates available, skipping...`)
