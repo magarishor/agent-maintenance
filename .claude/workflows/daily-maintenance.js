@@ -20,6 +20,7 @@ export const meta = {
 // 4. IF core available → Update core + Monitor batch (2-min intervals)
 // 5. Health Check (final) - MANDATORY
 // 6. Check for external updates - MANDATORY (retry 3x if fails)
+// 6.5. Detect manual/external updates - NEW: Track updates applied outside workflow
 // 7. Sync sheet with data - MANDATORY (retry 3x if fails, even if no updates)
 // 8. Send Google Chat notification - MANDATORY
 //
@@ -759,12 +760,75 @@ Return the exact response from the tool with found_external (boolean), updates (
     })
 
     // ========================================================================
-    // STEP 8: Sync to Google Sheet (MANDATORY - DO NOT SKIP)
+    // STEP 6.5: Detect Manual/External Updates (NEW - Track updates applied outside workflow)
     // ========================================================================
+
+    log(`  6️⃣.5️⃣ [${siteNum}] Detecting manually applied updates...`)
+
+    const manualUpdatesResult = await agent(
+      `Check for manually applied plugin updates for site id="${site.site_id}".
+
+Previous workflow updates: Plugins=${siteResult.batch_jobs.find(b => b.type === 'plugin_update')?.final_status || 'none'}; Core=${siteResult.batch_jobs.find(b => b.type === 'core_update')?.final_status || 'none'}
+
+Now check current state:
+1. Get current installed plugin versions (call site-info-tool or check-updates-tool)
+2. Compare with last known versions in system
+3. Identify any plugins that were updated outside the workflow
+4. Record manual updates found
+
+Return: {manual_updates_found: boolean, updated_plugins: [{name, old_version, new_version}], details: string}`,
+      {
+        label: `detect-manual-updates-${siteNum}`,
+        phase: 'Maintenance',
+        schema: {
+          type: 'object',
+          properties: {
+            manual_updates_found: { type: 'boolean' },
+            updated_plugins: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  old_version: { type: 'string' },
+                  new_version: { type: 'string' }
+                }
+              }
+            },
+            details: { type: 'string' }
+          },
+          required: ['manual_updates_found', 'details']
+        }
+      }
+    )
+
+    siteResult.steps.manual_updates = {
+      found: manualUpdatesResult?.manual_updates_found || false,
+      updated_plugins: manualUpdatesResult?.updated_plugins || [],
+      details: manualUpdatesResult?.details
+    }
+
+    siteResult.step_log.push({
+      step_number: '6.5',
+      step_name: 'Detect Manual/External Updates',
+      status: manualUpdatesResult?.manual_updates_found ? 'found' : 'none_found',
+      details: siteResult.steps.manual_updates,
+      plugins_count: manualUpdatesResult?.updated_plugins?.length || 0
+    })
+
+    if (manualUpdatesResult?.manual_updates_found) {
+      log(`  ✅ [${siteNum}] Found ${manualUpdatesResult?.updated_plugins?.length || 0} manually updated plugins`)
+    } else {
+      log(`  ℹ️  [${siteNum}] No manual updates detected`)
+    }
 
     // Wait 1 minute before sheet sync
     log(`  ⏱️  [${siteNum}] Waiting 1 minute before sheet sync...`)
     await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
+
+    // ========================================================================
+    // STEP 8: Sync to Google Sheet (MANDATORY - DO NOT SKIP)
+    // ========================================================================
 
     log(`  8️⃣ [${siteNum}] Syncing results to Google Sheet...`)
     let sheetSyncResult = null
