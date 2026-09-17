@@ -42,11 +42,53 @@ const MAX_BATCH_CHECKS = 5           // Max 5 checks = 10 minutes at 2-minute in
 const MAX_RETRIES = 3                // Max retries for external updates & sheet sync
 const REPORT_EMAIL = 'maintenance@smartsites.com'
 
+// CONCURRENCY SAFETY (bulk-run fix)
+// Sites within a batch run concurrently via Promise.all, but they all follow the
+// SAME fixed sequence of fixed-length waits, so they stay in lock-step and fire
+// shared-resource calls (batch-status polling, sheet sync) at the same instant.
+// That simultaneous fan-out is what trips rate limits that a single manual site
+// run never hits (e.g. check-batch-status-tool is limited to 1 call/15s per
+// batch_id, and Google Sheets API write quotas are per-minute per project).
+// Fix: (1) stagger each site's start within a batch so their timers drift apart,
+// and (2) funnel the shared-resource calls through a cross-site rate limiter so
+// even if timers do realign, actual calls stay spaced out.
+const SITE_STAGGER_OFFSET = 20_000        // 20s stagger between site starts in a batch
+const SHARED_RESOURCE_GAP = {
+  'batch-status': 20_000,                 // > the confirmed 15s/batch_id API limit
+  'sheet-sync': 15_000,                   // spread out Google Sheets API writes
+}
+
 // BACKUP & PLUGIN UPDATE IMPROVEMENTS
 const PRE_BACKUP_INITIAL_TIMEOUT = 60_000    // 1 minute for initial backup attempt
 const PRE_BACKUP_RETRY_TIMEOUT = 180_000     // 3 minutes for retry (extended timeout)
 const INTER_PLUGIN_WAIT = 300_000            // 5 minutes between individual plugin updates
 const PLUGIN_UPDATE_INDIVIDUAL = true        // NEW: Sequential individual updates instead of bulk
+
+// ============================================================================
+// CROSS-SITE SHARED-RESOURCE RATE LIMITER
+// ============================================================================
+// Serializes calls to a named shared resource (e.g. 'batch-status', 'sheet-sync')
+// across ALL concurrently-running site pipelines, enforcing a minimum gap between
+// the end of one call and the start of the next. Implemented as a chained promise
+// tail per resource key — deliberately avoids Date.now()/new Date() (unsafe for
+// workflow resume), relying only on setTimeout-based waits.
+
+const rateLimiterTails = {}
+
+function withSharedResourceLimit(resourceKey, fn) {
+  const gap = SHARED_RESOURCE_GAP[resourceKey] ?? 10_000
+  const prevTail = rateLimiterTails[resourceKey] || Promise.resolve()
+
+  const myTurn = prevTail.then(() => fn())
+
+  // Next caller waits for this call to settle, then the cooldown gap, regardless
+  // of whether this call succeeded or failed.
+  rateLimiterTails[resourceKey] = myTurn
+    .then(() => {}, () => {})
+    .then(() => new Promise(resolve => setTimeout(resolve, gap)))
+
+  return myTurn
+}
 
 // ============================================================================
 // PHASE 1: LOAD TODAY'S SITES
@@ -566,7 +608,7 @@ Return {batch_id, status, plugins_updated, message}.`,
               log(`  ⏱️  [${siteNum}] Waiting ${waitTime/1000}s before check #${pluginCheckCount}...`)
               await new Promise(resolve => setTimeout(resolve, waitTime))
 
-              const queueStatus = await agent(
+              const queueStatus = await withSharedResourceLimit('batch-status', () => agent(
                 `MUST CALL: smartsites-maintenance:check-batch-status-tool
 Parameters: id="${site.site_id}", batch_id="${pluginBatchId}"
 Return ONLY valid JSON with status, batch_id, completed_count, total_count.`,
@@ -583,7 +625,7 @@ Return ONLY valid JSON with status, batch_id, completed_count, total_count.`,
                     }
                   }
                 }
-              )
+              ))
 
               try {
                 let status = queueStatus
@@ -697,7 +739,7 @@ Return the exact response from the tool with batch_id, status, target_version, m
           log(`  ⏱️  [${siteNum}] Waiting ${waitTime/1000}s before check #${coreCheckCount}...`)
           await new Promise(resolve => setTimeout(resolve, waitTime))
 
-          const queueStatus = await agent(
+          const queueStatus = await withSharedResourceLimit('batch-status', () => agent(
             `MUST CALL: smartsites-maintenance:check-batch-status-tool
 Parameters: id="${site.site_id}", batch_id="${coreBatchId}"
 
@@ -721,7 +763,7 @@ Return ONLY valid JSON (no markdown code fences). Include all job statuses. Exam
                 required: ['completed_count', 'total_count']
               }
             }
-          )
+          ))
 
           // Parse if markdown-wrapped, extract values
           try {
@@ -950,7 +992,7 @@ Return: {manual_updates_found: boolean, updated_plugins: [{name, old_version, ne
     while (sheetSyncResult === null && sheetRetryCount < MAX_RETRIES) {
       try {
         sheetRetryCount++
-        const syncResult = await agent(
+        const syncResult = await withSharedResourceLimit('sheet-sync', () => agent(
           `Previous steps: External updates found = ${siteResult.steps.external_updates?.found}; Health check = ${finalHealthStatus}.
 Attempt ${sheetRetryCount} of ${MAX_RETRIES}.
 
@@ -973,7 +1015,7 @@ Return {synced: boolean, message: string}.`,
               required: ['synced', 'message']
             }
           }
-        )
+        ))
 
         if (syncResult) {
           sheetSyncResult = syncResult
@@ -1163,9 +1205,15 @@ for (let batchStart = 0; batchStart < sites.length; batchStart += PARALLEL_BATCH
 
   log(`📦 Starting batch ${batchNumber} with ${batch.length} sites (${batchStartNum}-${Math.min(batchStartNum + batch.length - 1, total_sites)})...`)
 
-  // Process all sites in this batch concurrently using Promise.all()
+  // Process all sites in this batch concurrently using Promise.all(), but stagger
+  // each site's start so their identical fixed-wait sequences don't stay in
+  // lock-step and fan out against shared-resource APIs at the same instant.
   const batchResults = await Promise.all(
-    batch.map((site, idx) => processSiteSequence(site, batchStartNum + idx, total_sites))
+    batch.map((site, idx) => {
+      const staggerDelay = idx * SITE_STAGGER_OFFSET
+      return new Promise(resolve => setTimeout(resolve, staggerDelay))
+        .then(() => processSiteSequence(site, batchStartNum + idx, total_sites))
+    })
   )
 
   log(`✅ Batch ${batchNumber} completed (${batch.length} sites processed)`)

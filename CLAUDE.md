@@ -2,7 +2,7 @@
 
 ## Overview
 
-Project automates daily WordPress maintenance for scheduled sites using Claude AI agents coordinated via workflow. Each day's maintenance sites load from Google Sheets and process sequentially. Claude dynamically selects right `smartsites-maintenance` MCP tool for each step — no rigid per-tool agent definitions.
+Project automates daily WordPress maintenance for scheduled sites using Claude AI agents coordinated via workflow. Each day's maintenance sites load from Google Sheets and process in **staggered parallel batches** (5 sites concurrently per batch, each site's start offset to avoid simultaneous shared-resource calls — see [Concurrency & Rate Limiting](#concurrency--rate-limiting)). Claude dynamically selects right `smartsites-maintenance` MCP tool for each step — no rigid per-tool agent definitions.
 
 **Model:** Haiku 4.5 (default), Sonnet for plugin/core update steps  
 **Source of Truth:** `.claude/workflows/daily-maintenance.js`  
@@ -20,7 +20,7 @@ Workflow calls inline agents per step, describing task in plain language and let
 #### Phase 1: Setup
 - **sites-loader agent** — Runs `python get_today_sites.py` to fetch today's sites from Google Sheets
 
-#### Phase 2: Maintenance (sequential per site)
+#### Phase 2: Maintenance (staggered parallel batches, 5 sites/batch)
 - Initial health check
 - Check for available updates (gates next two steps)
 - Queue plugin updates, if `plugins_available > 0` (model: sonnet)
@@ -82,14 +82,27 @@ All other steps (health checks, update checks, plugin/core updates, batch monito
 ## Timing & Context
 
 ### Agent Call Intervals
-- **Between steps:** 1 minute (60 seconds) — STRICT interval between each agent call
-- **Between sites:** 60 seconds
-- **Batch monitoring:** 2 minutes (120 seconds) between status checks — STRICT
+- **Between steps:** 1 minute (60 seconds) — STRICT interval between each agent call, per site
+- **Batch monitoring:** 2 minutes (120 seconds) between status checks — STRICT, per site
+- **Between batches:** 30 seconds (`BATCH_DELAY`) after all 5 sites in a batch finish, before starting the next batch
+
+### Concurrency & Rate Limiting
+
+Sites run in parallel batches of `PARALLEL_BATCH_SIZE = 5` via `Promise.all`. Because every site follows the *identical* fixed sequence of fixed-length waits, running them naively in parallel makes them stay in lock-step — all 5 would call the same shared-resource tool (e.g. `check-batch-status-tool`, `sync-sheets-tool`) at the same instant, tripping rate limits that a single manual site run never hits (`check-batch-status-tool` is limited to 1 call/15s per `batch_id`; Google Sheets API write quotas are per-minute per project). **This was the root cause of "works one-by-one, fails in bulk."**
+
+Two mitigations in `daily-maintenance.js`:
+1. **`SITE_STAGGER_OFFSET` (20s)** — each site within a batch starts `idx * 20s` after the previous one, so their identical wait sequences drift apart instead of firing in lock-step.
+2. **`withSharedResourceLimit(resourceKey, fn)`** — a cross-site rate limiter (chained-promise queue, no `Date.now()`/`new Date()` — unsafe for workflow resume) that serializes calls to a named shared resource across ALL concurrently-running sites, enforcing a minimum cooldown gap via `SHARED_RESOURCE_GAP`:
+   - `'batch-status'` → 20s gap (above the confirmed 15s/`batch_id` limit)
+   - `'sheet-sync'` → 15s gap
+   Wired around every `check-batch-status-tool` and `sync-sheets-tool` call so concurrent sites can't fan out against the same endpoint simultaneously, even if staggering alone isn't enough.
+
+If bulk runs still fail after this, increase `SITE_STAGGER_OFFSET` and/or the relevant `SHARED_RESOURCE_GAP` entry, or add a new resource key around another shared call (e.g. Chat notifications) using the same `withSharedResourceLimit` helper.
 
 ### Context Passing
 - Each agent receives previous step results and health status
 - Agents use prior step outcomes to inform decisions
-- Enables sequential intelligence: each step knows what happened before it
+- Enables sequential intelligence within a site: each step knows what happened before it (sites themselves are independent of each other, aside from sharing the rate limiter above)
 
 ## Conditional Logic
 
@@ -180,6 +193,12 @@ await Workflow({
 - Verify `check-batch-status-tool` is accessible
 - If batch stuck, check interval is 2 minutes (120 seconds) between each check
 
+### Works One-by-One But Fails/Times Out in Bulk
+- This is almost always the concurrent-fan-out issue described in [Concurrency & Rate Limiting](#concurrency--rate-limiting) — multiple sites in a batch hitting the same rate-limited endpoint (`check-batch-status-tool`, `sync-sheets-tool`) at the same instant
+- Check that `withSharedResourceLimit(...)` still wraps every `check-batch-status-tool` and `sync-sheets-tool` call in `daily-maintenance.js` — if a new shared-resource call was added without wrapping it, it can reintroduce this failure mode
+- If it still happens, increase `SITE_STAGGER_OFFSET` and/or the relevant `SHARED_RESOURCE_GAP` value, or lower `PARALLEL_BATCH_SIZE`
+- Sheet sync failing specifically in bulk (but not solo) usually means Google Sheets API per-minute write quota was burst past — widen the `'sheet-sync'` gap
+
 ---
 
 ## Key Rules
@@ -205,7 +224,7 @@ await Workflow({
 
 ## Future Enhancements
 
-1. **Parallel processing** — Process multiple sites in parallel (currently sequential)
+1. **Adaptive rate limiting** — Tune `SITE_STAGGER_OFFSET`/`SHARED_RESOURCE_GAP` dynamically based on observed rate-limit errors instead of fixed constants
 2. **Retry logic** — Retry failed updates with exponential backoff
 3. **Rollback** — Rollback updates if health check fails after
 4. **Custom alerts** — Send alerts on critical failures
