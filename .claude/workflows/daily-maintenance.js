@@ -16,8 +16,10 @@ export const meta = {
 //
 // 1. Health Check (initial)
 // 2. Check for updates available
-// 3. IF plugins available → Update plugins SEQUENTIALLY (one-by-one with per-plugin backup & health checks)
-// 4. IF core available → Update core + Monitor batch (2-min intervals)
+// 2a. Full backup (queued) → wait until the backup job finishes; skip updates if it fails
+// 3. IF plugins available → ONE update-all batch (site updates each plugin with its own backup,
+//    health check & auto-rollback) → monitor batch until no jobs pending/running
+// 4. IF core available → wait for dashboard to release site lock → update core → monitor batch
 // 5. Health Check (final) - MANDATORY
 // 6. Check for external updates - MANDATORY (retry 3x if fails)
 // 6.5. Detect manual/external updates - NEW: Track updates applied outside workflow
@@ -58,11 +60,11 @@ const SHARED_RESOURCE_GAP = {
   'sheet-sync': 15_000,                   // spread out Google Sheets API writes
 }
 
-// BACKUP & PLUGIN UPDATE IMPROVEMENTS
-const PRE_BACKUP_INITIAL_TIMEOUT = 60_000    // 1 minute for initial backup attempt
-const PRE_BACKUP_RETRY_TIMEOUT = 180_000     // 3 minutes for retry (extended timeout)
-const INTER_PLUGIN_WAIT = 300_000            // 5 minutes between individual plugin updates
-const PLUGIN_UPDATE_INDIVIDUAL = true        // NEW: Sequential individual updates instead of bulk
+// BACKUP & LOCK HANDLING
+const MAX_PRE_BACKUP_ATTEMPTS = 2            // Full backup attempts before skipping updates
+const PRE_BACKUP_RETRY_TIMEOUT = 180_000     // 3 minutes before backup retry
+const MAX_RELEASE_CHECKS = 8                 // Max 8 checks = 16 minutes waiting for dashboard to release site lock
+const LOCK_RETRIES = 3                       // Retries when an update is rejected with "already being processed"
 
 // ============================================================================
 // CROSS-SITE SHARED-RESOURCE RATE LIMITER
@@ -223,6 +225,141 @@ Return {success: true, path: '${fullPath}'}`,
 }
 
 // ============================================================================
+// MAINTENANCE API HELPERS
+// ============================================================================
+//
+// Why these exist (root causes of past bulk-run failures):
+// - Updates/backups are ASYNC: tools return a queued batch_id, not a result.
+//   We must poll the batch on the site until it has no pending/running jobs.
+// - After a batch finishes on the site, the Pegasus dashboard keeps the site
+//   LOCKED until it marks the batch "batch_processed" (can take 5-10 min).
+//   Any update sent during that window is rejected with
+//   "Another update(...) is already being processed".
+// - Health checks must return a real boolean, otherwise an undefined value
+//   was treated as a failure and triggered a rollback of a good update.
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+const isLockError = text => /already being processed/i.test(String(text || ''))
+
+const HEALTH_SCHEMA = {
+  type: 'object',
+  properties: {
+    passed: { type: 'boolean' },
+    failed_checks: { type: 'array', items: { type: 'string' } },
+    message: { type: 'string' }
+  },
+  required: ['passed', 'message']
+}
+
+const BATCH_SCHEMA = {
+  type: 'object',
+  properties: {
+    pending: { type: 'number' },
+    running: { type: 'number' },
+    completed: { type: 'number' },
+    failed: { type: 'number' },
+    cancelled: { type: 'number' },
+    jobs: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          job_type: { type: 'string' },
+          plugin_slug: { type: ['string', 'null'] },
+          status: { type: 'string' },
+          error_message: { type: ['string', 'null'] },
+          old_version: { type: ['string', 'null'] },
+          new_version: { type: ['string', 'null'] },
+          backup_id: { type: ['string', 'null'] },
+          rolled_back: { type: 'boolean' }
+        },
+        required: ['job_type', 'status']
+      }
+    }
+  },
+  required: ['pending', 'running', 'completed', 'failed', 'cancelled', 'jobs']
+}
+
+async function runHealthCheck(site, label, context = '') {
+  const result = await agent(
+    `${context}Call smartsites-maintenance:health-check-tool with id="${site.site_id}".
+If the tool is not visible, load it with ToolSearch "select:mcp__smartsites-maintenance__health-check-tool". Do NOT invent a result.
+
+Set passed=true ONLY if the tool reports "Overall: PASSED" (all_passed=true). Put the names of any failed checks in failed_checks.`,
+    { label, phase: 'Maintenance', schema: HEALTH_SCHEMA }
+  )
+  return { status: result?.passed ? 'passed' : 'failed', details: result }
+}
+
+// Poll a batch directly on the site until no jobs are pending/running.
+async function waitForSiteBatch(site, batchId, labelPrefix) {
+  let last = null
+  for (let check = 1; check <= MAX_BATCH_CHECKS; check++) {
+    await sleep(BATCH_CHECK_INTERVAL)
+    last = await withSharedResourceLimit('batch-status', () => agent(
+      `MUST CALL: smartsites-maintenance:check-batch-status-tool
+Parameters: id="${site.site_id}", batch_id="${batchId}", check_directly_on_site=true
+If the tool is not visible, load it with ToolSearch "select:mcp__smartsites-maintenance__check-batch-status-tool". Do NOT invent a result.
+
+Copy the counts from the response "summary". For each job copy job_type, plugin_slug, status, error_message,
+and from job.result: old_version, new_version, backup_id, and rolled_back (job.result.health_checks.rolled_back, default false).`,
+      { label: `${labelPrefix}-check${check}`, phase: 'Maintenance', schema: BATCH_SCHEMA }
+    ))
+    log(`  📊 [${site.site_id}] ${labelPrefix} #${check}: ✓${last?.completed ?? 0} ✗${last?.failed ?? 0} ⊘${last?.cancelled ?? 0} (pending ${last?.pending ?? '?'}, running ${last?.running ?? '?'})`)
+    if (last && last.pending === 0 && last.running === 0) {
+      return { done: true, ...last }
+    }
+  }
+  return { done: false, timeout: true, ...(last || {}) }
+}
+
+// Wait until the Pegasus dashboard marks the batch processed (releases the site lock).
+async function waitForDashboardRelease(site, batchId, labelPrefix) {
+  for (let check = 1; check <= MAX_RELEASE_CHECKS; check++) {
+    const status = await withSharedResourceLimit('batch-status', () => agent(
+      `MUST CALL: smartsites-maintenance:check-batch-status-tool
+Parameters: id="${site.site_id}", batch_id="${batchId}", check_directly_on_site=false
+If the tool is not visible, load it with ToolSearch "select:mcp__smartsites-maintenance__check-batch-status-tool". Do NOT invent a result.
+
+Return the "event" field of the returned log record exactly (e.g. "batch_queued" or "batch_processed").`,
+      {
+        label: `${labelPrefix}-release${check}`,
+        phase: 'Maintenance',
+        schema: { type: 'object', properties: { event: { type: 'string' } }, required: ['event'] }
+      }
+    ))
+    if (/processed/i.test(status?.event || '')) {
+      log(`  🔓 [${site.site_id}] Dashboard released site after ${labelPrefix}`)
+      return true
+    }
+    log(`  🔒 [${site.site_id}] Site still locked (${status?.event || 'unknown'}) - waiting ${BATCH_CHECK_INTERVAL / 1000}s...`)
+    await sleep(BATCH_CHECK_INTERVAL)
+  }
+  return false
+}
+
+// Queue an async job; if the dashboard says the site is locked, wait and retry.
+// queueFn must return {batch_id, error}.
+async function queueWithLockRetry(site, labelPrefix, queueFn) {
+  let queued = null
+  for (let attempt = 1; attempt <= LOCK_RETRIES; attempt++) {
+    queued = await queueFn(attempt)
+    if (queued?.batch_id) return queued
+    if (!isLockError(queued?.error) || attempt === LOCK_RETRIES) return queued
+    log(`  🔒 [${site.site_id}] ${labelPrefix}: site locked by another update - retrying in ${BATCH_CHECK_INTERVAL / 1000}s (attempt ${attempt}/${LOCK_RETRIES})`)
+    await sleep(BATCH_CHECK_INTERVAL)
+  }
+  return queued
+}
+
+const QUEUE_SCHEMA_PROPS = {
+  batch_id: { type: 'string' },
+  error: { type: 'string' }
+}
+
+
+// ============================================================================
 // PHASE 2: PROCESS SITES IN PARALLEL BATCHES
 // ============================================================================
 
@@ -249,95 +386,76 @@ async function processSiteSequence(site, siteNum, total_sites) {
 
     log(`  1️⃣ [${siteNum}] Running health check...`)
 
-    const healthCheck1 = await agent(
-      `Call smartsites-maintenance:health-check-tool with id="${site.site_id}". Return {status, errors}.`,
-      {
-        label: `health-check-initial-${siteNum}`,
-        phase: 'Maintenance',
-      }
-    )
-
-    // Extract actual status from response
-    const initialHealthStatus = healthCheck1?.status || healthCheck1?.['status'] || (healthCheck1 ? 'healthy' : 'unknown')
-    siteResult.steps.initial_health = {
-      status: initialHealthStatus,
-      details: healthCheck1,
-    }
+    const healthCheck1 = await runHealthCheck(site, `health-check-initial-${siteNum}`)
+    const initialHealthStatus = healthCheck1.status
+    siteResult.steps.initial_health = healthCheck1
     siteResult.step_log.push({
       step_number: 1,
       step_name: 'Health Check (Initial)',
-      status: initialHealthStatus === 'healthy' ? 'success' : 'failed',
-      details: healthCheck1
+      status: initialHealthStatus === 'passed' ? 'success' : 'failed',
+      details: healthCheck1.details
     })
     log(`  ✅ [${siteNum}] Health: ${initialHealthStatus}`)
 
     // Wait 1 minute before next agent call
     log(`  ⏱️  [${siteNum}] Waiting 1 minute before next step...`)
-    await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
+    await sleep(AGENT_CALL_INTERVAL)
 
     // ========================================================================
-    // STEP 2a: Create Fresh Backup (Hybrid Strategy - Pre-Backup with Retry)
+    // STEP 2a: Create Fresh Full Backup (queued job - wait for it to finish)
     // ========================================================================
 
     log(`  2️⃣a [${siteNum}] Creating fresh backup before updates...`)
 
-    let preBackupResult = null
+    let preBackup = { success: false, backup_id: null, error: null }
     let backupAttempt = 0
-    const MAX_PRE_BACKUP_ATTEMPTS = 2
 
-    while (preBackupResult === null && backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
+    while (!preBackup.success && backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
       backupAttempt++
       log(`  🔄 [${siteNum}] Backup attempt ${backupAttempt}/${MAX_PRE_BACKUP_ATTEMPTS}...`)
 
-      preBackupResult = await agent(
+      const backupQueued = await agent(
         `MUST CALL: smartsites-maintenance:create-backup-tool
 Parameters: id="${site.site_id}", backup_type="full"
+If the tool is not visible, load it with ToolSearch "select:mcp__smartsites-maintenance__create-backup-tool". Do NOT invent a result.
 
-This fresh backup will be used for rollback if updates fail.
-Attempt ${backupAttempt} of ${MAX_PRE_BACKUP_ATTEMPTS}.
-Return {success: boolean, backup_id: string, message: string}`,
+The backup is queued asynchronously. Return the batch_id from the response (e.g. "batch_abc123").
+If the tool returns an error, set batch_id to "" and error to the exact error message.`,
         {
           label: `pre-backup-${siteNum}-attempt${backupAttempt}`,
           phase: 'Maintenance',
-          schema: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              backup_id: { type: 'string' },
-              message: { type: 'string' }
-            },
-            required: ['success', 'message']
-          }
+          schema: { type: 'object', properties: QUEUE_SCHEMA_PROPS, required: ['batch_id'] }
         }
       )
 
-      if (preBackupResult?.success) {
-        log(`  ✅ [${siteNum}] Fresh backup ready: ${preBackupResult?.backup_id}`)
-        break
+      if (backupQueued?.batch_id) {
+        const backupBatch = await waitForSiteBatch(site, backupQueued.batch_id, `pre-backup-${siteNum}`)
+        const backupJob = (backupBatch.jobs || []).find(j => j.job_type === 'backup')
+        if (backupBatch.done && backupJob?.status === 'completed' && backupJob?.backup_id) {
+          preBackup = { success: true, backup_id: backupJob.backup_id, batch_id: backupQueued.batch_id }
+          log(`  ✅ [${siteNum}] Fresh backup ready: ${backupJob.backup_id}`)
+          break
+        }
+        preBackup.error = backupBatch.timeout ? 'Backup did not finish in time' : (backupJob?.error_message || 'Backup job failed')
+      } else {
+        preBackup.error = backupQueued?.error || 'Backup could not be queued'
       }
 
-      // If first attempt failed, wait and retry with EXTENDED timeout
-      if (backupAttempt === 1 && backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
-        log(`  ⚠️  [${siteNum}] Backup attempt 1 failed - retrying with extended timeout...`)
-        log(`  ⏱️  [${siteNum}] Waiting 3 minutes before backup retry (extended window)...`)
-        await new Promise(resolve => setTimeout(resolve, PRE_BACKUP_RETRY_TIMEOUT))
+      if (backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
+        log(`  ⚠️  [${siteNum}] Backup attempt ${backupAttempt} failed (${preBackup.error}) - retrying in ${PRE_BACKUP_RETRY_TIMEOUT / 1000}s...`)
+        await sleep(PRE_BACKUP_RETRY_TIMEOUT)
       }
     }
 
-    siteResult.steps.pre_backup = {
-      success: preBackupResult?.success || false,
-      backup_id: preBackupResult?.backup_id,
-      attempts: backupAttempt,
-      details: preBackupResult
-    }
+    siteResult.steps.pre_backup = { ...preBackup, attempts: backupAttempt }
 
-    if (!preBackupResult?.success) {
+    if (!preBackup.success) {
       log(`  ❌ [${siteNum}] Pre-backup FAILED after ${backupAttempt} attempts - SKIPPING ALL UPDATES (no safe backup)`)
       siteResult.step_log.push({
         step_number: '2a',
         step_name: 'Pre-Backup Creation',
         status: 'failed',
-        details: preBackupResult,
+        details: preBackup,
         attempts: backupAttempt,
         reason: 'Backup creation timeout/failed - skipping plugin/core updates for safety'
       })
@@ -359,13 +477,13 @@ Use Python to write. Return {success: true}.`,
       step_number: '2a',
       step_name: 'Pre-Backup Creation',
       status: 'success',
-      details: { backup_id: preBackupResult?.backup_id },
+      details: { backup_id: preBackup.backup_id },
       attempts: backupAttempt
     })
 
     // Wait 1 minute before next step
     log(`  ⏱️  [${siteNum}] Waiting 1 minute before next step...`)
-    await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
+    await sleep(AGENT_CALL_INTERVAL)
 
     // ========================================================================
     // STEP 3: Check for Available Updates
@@ -374,35 +492,50 @@ Use Python to write. Return {success: true}.`,
     log(`  3️⃣ [${siteNum}] Checking for available updates...`)
 
     const updateCheck = await agent(
-      `Previous step (Health Check) returned: ${JSON.stringify(siteResult.steps.initial_health)}
+      `MUST CALL: smartsites-maintenance:check-updates-tool
+Parameters: id="${site.site_id}"
+If the tool is not visible, load it with ToolSearch "select:mcp__smartsites-maintenance__check-updates-tool". Do NOT invent a result.
 
-Now call smartsites-maintenance:check-updates-tool with id="${site.site_id}".
-Based on the health check status (${initialHealthStatus}), proceed with update check.
-Return {plugins_available, core_available, core_version, plugin_list}.`,
+Return every plugin in data.plugins as {slug, name, current_version, new_version, can_update}.
+core_available is true only if data.core has a new_version; core_version is that new_version (or "N/A").`,
       {
         label: `check-updates-${siteNum}`,
         phase: 'Maintenance',
         schema: {
           type: 'object',
           properties: {
-            plugins_available: { type: 'number' },
+            plugin_list: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  slug: { type: 'string' },
+                  name: { type: 'string' },
+                  current_version: { type: 'string' },
+                  new_version: { type: 'string' },
+                  can_update: { type: 'boolean' }
+                },
+                required: ['slug', 'can_update']
+              }
+            },
             core_available: { type: 'boolean' },
-            core_version: { type: 'string' },
-            plugin_list: { type: 'array' },
-            message: { type: 'string' }
+            core_version: { type: 'string' }
           },
-          required: ['plugins_available', 'core_available', 'core_version']
+          required: ['plugin_list', 'core_available', 'core_version']
         }
       }
     )
 
-    // Extract update counts - handle both direct and nested responses
-    const pluginsAvailable = updateCheck?.plugins_available ?? 0
+    const pluginList = updateCheck?.plugin_list || []
+    const updatablePlugins = pluginList.filter(p => p.can_update)
+    const blockedPlugins = pluginList.filter(p => !p.can_update)
+    const pluginsAvailable = updatablePlugins.length
     const coreAvailable = updateCheck?.core_available ?? false
     const coreVersion = updateCheck?.core_version || 'N/A'
 
     siteResult.steps.update_check = {
       plugins_available: pluginsAvailable,
+      plugins_blocked: blockedPlugins.map(p => p.name || p.slug),
       core_available: coreAvailable,
       core_version: coreVersion,
       details: updateCheck,
@@ -411,259 +544,58 @@ Return {plugins_available, core_available, core_version, plugin_list}.`,
       step_number: 2,
       step_name: 'Check for Updates',
       status: 'success',
-      details: { plugins_available: pluginsAvailable, core_available: coreAvailable, core_version: coreVersion }
+      details: { plugins_available: pluginsAvailable, plugins_blocked: blockedPlugins.length, core_available: coreAvailable, core_version: coreVersion }
     })
-    log(`  ✅ [${siteNum}] Found ${pluginsAvailable} plugin updates, Core: ${coreAvailable ? 'Yes' : 'No'}`)
+    log(`  ✅ [${siteNum}] Found ${pluginsAvailable} plugin updates (${blockedPlugins.length} blocked), Core: ${coreAvailable ? coreVersion : 'No'}`)
 
     // ========================================================================
-    // STEP 4: Update All Plugins (ONLY IF UPDATES AVAILABLE)
+    // STEP 4: Update Plugins (one batch - the site updates each plugin in turn
+    //         with its own backup, health check and automatic rollback)
     // ========================================================================
+
+    let pluginBatchId = null
 
     if (pluginsAvailable > 0) {
-      // Wait 1 minute before plugin update
       log(`  ⏱️  [${siteNum}] Waiting 1 minute before plugin update step...`)
-      await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
+      await sleep(AGENT_CALL_INTERVAL)
 
-      log(`  4️⃣ [${siteNum}] Updating plugins sequentially (${pluginsAvailable} total)...`)
+      log(`  4️⃣ [${siteNum}] Updating ${pluginsAvailable} plugins: ${updatablePlugins.map(p => p.slug).join(', ')}`)
 
-      // NEW: Sequential individual plugin updates with per-plugin backup & health checks
-      const pluginResults = []
-      let pluginSuccessCount = 0
-      let pluginFailureCount = 0
+      const pluginQueued = await queueWithLockRetry(site, `plugin-update-${siteNum}`, attempt => agent(
+        `MUST CALL: smartsites-maintenance:update-all-plugins-tool
+Parameters: id="${site.site_id}", create_backup=true, run_health_checks=true, security_only=false
+If the tool is not visible, load it with ToolSearch "select:mcp__smartsites-maintenance__update-all-plugins-tool". Do NOT invent a result.
 
-      if (PLUGIN_UPDATE_INDIVIDUAL) {
-        // Sequential individual updates - smoother error handling
-        for (let pluginIdx = 1; pluginIdx <= pluginsAvailable; pluginIdx++) {
-          try {
-            log(`  📦 [${siteNum}] Plugin ${pluginIdx}/${pluginsAvailable}...`)
-
-            // Step 1: Per-plugin backup
-            const pluginBackupResult = await agent(
-              `For site ID ${site.site_id}, create a targeted backup before updating plugin ${pluginIdx}.
-Call smartsites-maintenance:create-backup-tool with backup_type="plugin_safe".
-Return {success: boolean, backup_id: string, message: string}.`,
-              {
-                label: `plugin-backup-${siteNum}-${pluginIdx}`,
-                phase: 'Maintenance',
-                schema: {
-                  type: 'object',
-                  properties: {
-                    success: { type: 'boolean' },
-                    backup_id: { type: 'string' },
-                    message: { type: 'string' }
-                  },
-                  required: ['success', 'message']
-                }
-              }
-            )
-
-            if (!pluginBackupResult?.success) {
-              log(`  ⚠️  [${siteNum}] Plugin ${pluginIdx}: Backup failed, skipping`)
-              pluginResults.push({ plugin: pluginIdx, status: 'skipped', reason: 'backup_failed' })
-              continue
-            }
-
-            // Step 2: Update single plugin
-            const singlePluginUpdate = await agent(
-              `For site ID ${site.site_id}, update plugin number ${pluginIdx} of ${pluginsAvailable}.
-Call smartsites-maintenance:update-plugin-tool for the specific plugin.
-Return {success: boolean, plugin_name: string, message: string}.`,
-              {
-                label: `update-plugin-${siteNum}-${pluginIdx}`,
-                phase: 'Maintenance',
-                model: 'sonnet',
-                schema: {
-                  type: 'object',
-                  properties: {
-                    success: { type: 'boolean' },
-                    plugin_name: { type: 'string' },
-                    message: { type: 'string' }
-                  },
-                  required: ['success', 'message']
-                }
-              }
-            )
-
-            if (!singlePluginUpdate?.success) {
-              log(`  ❌ [${siteNum}] Plugin ${pluginIdx}: Update failed, rolling back...`)
-              // Attempt rollback
-              await agent(
-                `For site ID ${site.site_id}, rollback to backup ${pluginBackupResult?.backup_id}.
-Call smartsites-maintenance:rollback-tool.
-Return {success: boolean, message: string}.`,
-                {
-                  label: `rollback-plugin-${siteNum}-${pluginIdx}`,
-                  phase: 'Maintenance'
-                }
-              )
-              pluginResults.push({ plugin: pluginIdx, status: 'failed', reason: 'update_failed' })
-              pluginFailureCount++
-              continue
-            }
-
-            // Step 3: Post-update health check
-            const postPluginHealth = await agent(
-              `For site ID ${site.site_id}, run a health check after plugin ${pluginIdx} update.
-Call smartsites-maintenance:health-check-tool.
-Return {passed: boolean, message: string, checks: object}.`,
-              {
-                label: `health-plugin-${siteNum}-${pluginIdx}`,
-                phase: 'Maintenance'
-              }
-            )
-
-            if (!postPluginHealth?.passed) {
-              log(`  ❌ [${siteNum}] Plugin ${pluginIdx}: Health check failed, rolling back...`)
-              // Rollback on health failure
-              await agent(
-                `For site ID ${site.site_id}, rollback to backup ${pluginBackupResult?.backup_id}.
-Call smartsites-maintenance:rollback-tool.
-Return {success: boolean, message: string}.`,
-                {
-                  label: `rollback-health-${siteNum}-${pluginIdx}`,
-                  phase: 'Maintenance'
-                }
-              )
-              pluginResults.push({ plugin: pluginIdx, status: 'failed', reason: 'health_check_failed' })
-              pluginFailureCount++
-              continue
-            }
-
-            // Success!
-            log(`  ✅ [${siteNum}] Plugin ${pluginIdx}: Updated successfully`)
-            pluginResults.push({ plugin: pluginIdx, status: 'success', name: singlePluginUpdate?.plugin_name })
-            pluginSuccessCount++
-
-            // Wait before next plugin (5 minutes)
-            if (pluginIdx < pluginsAvailable) {
-              log(`  ⏱️  [${siteNum}] Waiting 5 minutes before next plugin...`)
-              await new Promise(resolve => setTimeout(resolve, INTER_PLUGIN_WAIT))
-            }
-
-          } catch (error) {
-            log(`  ❌ [${siteNum}] Plugin ${pluginIdx}: Unexpected error`)
-            pluginResults.push({ plugin: pluginIdx, status: 'error', message: error.message })
-            pluginFailureCount++
-          }
+Return batch_id from the response. If the tool returns an error, set batch_id to "" and error to the exact error message.`,
+        {
+          label: `update-plugins-${siteNum}-attempt${attempt}`,
+          phase: 'Maintenance',
+          model: 'sonnet',
+          schema: { type: 'object', properties: QUEUE_SCHEMA_PROPS, required: ['batch_id'] }
         }
+      ))
 
-        siteResult.steps.plugin_update_request = {
-          strategy: 'sequential_individual',
-          total: pluginsAvailable,
-          succeeded: pluginSuccessCount,
-          failed: pluginFailureCount,
-          details: pluginResults,
-        }
+      pluginBatchId = pluginQueued?.batch_id || null
+      siteResult.steps.plugin_update_request = { batch_id: pluginBatchId, error: pluginQueued?.error || null }
 
-        log(`  📊 [${siteNum}] Plugin update complete: ${pluginSuccessCount}/${pluginsAvailable} succeeded`)
-
+      if (!pluginBatchId) {
+        log(`  ❌ [${siteNum}] Plugin update could not be queued: ${pluginQueued?.error}`)
+        siteResult.batch_jobs.push({ type: 'plugin_update', batch_id: null, final_status: 'failed', details: pluginQueued })
       } else {
-        // FALLBACK: Original bulk update strategy (if sequential disabled)
-        const pluginUpdate = await agent(
-          `Previous steps: Health Check status = ${initialHealthStatus}; Update Check found ${pluginsAvailable} plugin updates available.
-Now call smartsites-maintenance:update-all-plugins-tool with id="${site.site_id}", create_backup=false, run_health_checks=true.
-Return {batch_id, status, plugins_updated, message}.`,
-          {
-            label: `update-plugins-bulk-${siteNum}`,
-            phase: 'Maintenance',
-            model: 'sonnet',
-            schema: {
-              type: 'object',
-              properties: {
-                batch_id: { type: 'string' },
-                status: { type: 'string' },
-                plugins_updated: { type: 'number' },
-                message: { type: 'string' }
-              },
-              required: ['batch_id', 'status', 'message']
-            }
-          }
-        )
+        log(`  📦 [${siteNum}] Plugin batch queued: ${pluginBatchId}`)
+        const pluginBatch = await waitForSiteBatch(site, pluginBatchId, `plugins-${siteNum}`)
+        const pluginFinalStatus = pluginBatch.timeout ? 'timeout'
+          : (pluginBatch.failed > 0 || pluginBatch.cancelled > 0) ? 'failed' : 'completed'
+        const rolledBack = (pluginBatch.jobs || []).filter(j => j.rolled_back).map(j => j.plugin_slug)
 
-        let pluginBatchId = pluginUpdate?.batch_id
-
-        siteResult.steps.plugin_update_request = {
+        siteResult.batch_jobs.push({
+          type: 'plugin_update',
           batch_id: pluginBatchId,
-          status: pluginUpdate?.status,
-          details: pluginUpdate,
-        }
-
-        if (!pluginBatchId || pluginBatchId === 'null' || pluginUpdate?.status === 'error') {
-          log(`  ⚠️  [${siteNum}] Plugin update failed — skipping monitoring`)
-        } else if (pluginBatchId && pluginBatchId !== 'null') {
-          log(`  📦 [${siteNum}] Plugin batch created: ${pluginBatchId}`)
-
-          // Monitor batch
-          if (pluginBatchId && pluginBatchId !== 'null' && pluginUpdate?.status !== 'failed') {
-            log(`  ⏳ [${siteNum}] Monitoring plugin batch status...`)
-
-            let pluginBatchComplete = false
-            let pluginCheckCount = 0
-            let pluginFinalStatus = null
-
-            while (!pluginBatchComplete && pluginCheckCount < MAX_BATCH_CHECKS) {
-              pluginCheckCount++
-              const waitTime = BATCH_CHECK_INTERVAL
-
-              log(`  ⏱️  [${siteNum}] Waiting ${waitTime/1000}s before check #${pluginCheckCount}...`)
-              await new Promise(resolve => setTimeout(resolve, waitTime))
-
-              const queueStatus = await withSharedResourceLimit('batch-status', () => agent(
-                `MUST CALL: smartsites-maintenance:check-batch-status-tool
-Parameters: id="${site.site_id}", batch_id="${pluginBatchId}"
-Return ONLY valid JSON with status, batch_id, completed_count, total_count.`,
-                {
-                  label: `batch-status-plugins-${siteNum}-check${pluginCheckCount}`,
-                  phase: 'Maintenance',
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      status: { type: ['string', 'number'] },
-                      batch_id: { type: 'string' },
-                      completed_count: { type: 'number' },
-                      total_count: { type: 'number' }
-                    }
-                  }
-                }
-              ))
-
-              try {
-                let status = queueStatus
-                if (typeof queueStatus === 'string' && queueStatus.includes('{')) {
-                  const m = queueStatus.match(/\{[\s\S]*\}/)
-                  if (m) status = JSON.parse(m[0])
-                }
-
-                const c = status?.completed_count ?? 0
-                const tot = status?.total_count ?? 0
-
-                log(`  📊 [${siteNum}] Batch #${pluginCheckCount}: ${c}/${tot} done`)
-
-                if (c >= tot && tot > 0) {
-                  pluginBatchComplete = true
-                  pluginFinalStatus = status
-                  log(`  ✅ [${siteNum}] Plugin batch done`)
-                }
-
-                if (pluginCheckCount >= MAX_BATCH_CHECKS && !pluginBatchComplete) {
-                  log(`  ❌ [${siteNum}] Plugin batch timeout after ${MAX_BATCH_CHECKS} checks`)
-                  pluginBatchComplete = true
-                }
-              } catch (e) {
-                log(`  ⚠️  [${siteNum}] Batch check error`)
-                pluginBatchComplete = true
-              }
-            }
-
-            siteResult.batch_jobs.push({
-              type: 'plugin_update',
-              batch_id: pluginBatchId,
-              checks: pluginCheckCount,
-              final_status: pluginFinalStatus?.status,
-              details: pluginFinalStatus,
-            })
-          }
-        }
+          final_status: pluginFinalStatus,
+          rolled_back: rolledBack,
+          details: pluginBatch,
+        })
+        log(`  ${pluginFinalStatus === 'completed' ? '✅' : '❌'} [${siteNum}] Plugins ${pluginFinalStatus}: ✓${pluginBatch.completed ?? 0} ✗${pluginBatch.failed ?? 0} ⊘${pluginBatch.cancelled ?? 0}${rolledBack.length ? ` (rolled back: ${rolledBack.join(', ')})` : ''}`)
       }
     } else {
       log(`  ⏭️  [${siteNum}] No plugin updates available, skipping...`)
@@ -674,141 +606,59 @@ Return ONLY valid JSON with status, batch_id, completed_count, total_count.`,
     // ========================================================================
 
     if (coreAvailable) {
-      // Wait 1 minute before core update
-      log(`  ⏱️  [${siteNum}] Waiting 1 minute before core update step...`)
-      await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
+      // The dashboard keeps the site locked until it marks the plugin batch
+      // processed - sending core before that is rejected.
+      if (pluginBatchId) {
+        log(`  🔒 [${siteNum}] Waiting for dashboard to release site after plugin batch...`)
+        const released = await waitForDashboardRelease(site, pluginBatchId, `plugins-${siteNum}`)
+        if (!released) log(`  ⚠️  [${siteNum}] Site still locked after ${MAX_RELEASE_CHECKS} checks - core update will retry on lock`)
+      } else {
+        log(`  ⏱️  [${siteNum}] Waiting 1 minute before core update step...`)
+        await sleep(AGENT_CALL_INTERVAL)
+      }
 
       log(`  5️⃣ [${siteNum}] Updating WordPress core to ${coreVersion}...`)
 
-      const coreUpdate = await agent(
-        `Previous steps: Health Check status = ${initialHealthStatus}; Plugins update ${siteResult.batch_jobs.find(b => b.type === 'plugin_update')?.final_status || 'N/A'}; Core update available to version ${coreVersion}.
-
-MUST CALL: smartsites-maintenance:update-core-tool
+      const coreQueued = await queueWithLockRetry(site, `core-update-${siteNum}`, attempt => agent(
+        `MUST CALL: smartsites-maintenance:update-core-tool
 Parameters: id="${site.site_id}", version="${coreVersion}", create_backup=true, run_health_checks=true
+If the tool is not visible, load it with ToolSearch "select:mcp__smartsites-maintenance__update-core-tool". Do NOT invent a result.
 
-If this tool is not immediately visible, use ToolSearch with query "select:smartsites-maintenance:update-core-tool" to load it first, then call it. Do NOT compose a fake response — you must actually invoke the tool and return its real output.
-Return the exact response from the tool with batch_id, status, target_version, message.`,
+NOTE: this tool often reports success:false with reason "Job queued — poll ..." - that means the update WAS queued.
+In that case return batch_id from data.batch_id (or log.properties.response.batch_id).
+Only if the tool returns a real error (no batch_id anywhere), set batch_id to "" and error to the exact error message.`,
         {
-          label: `update-core-${siteNum}`,
+          label: `update-core-${siteNum}-attempt${attempt}`,
           phase: 'Maintenance',
           model: 'sonnet',
-          schema: {
-            type: 'object',
-            properties: {
-              batch_id: { type: 'string' },
-              status: { type: 'string' },
-              target_version: { type: 'string' },
-              message: { type: 'string' }
-            },
-            required: ['batch_id', 'status', 'message']
-          }
+          schema: { type: 'object', properties: QUEUE_SCHEMA_PROPS, required: ['batch_id'] }
         }
-      )
+      ))
 
-      const coreBatchId = coreUpdate?.batch_id
+      const coreBatchId = coreQueued?.batch_id || null
       siteResult.steps.core_update_request = {
         batch_id: coreBatchId,
-        target_version: updateCheck.core_version,
-        status: coreUpdate?.status,
-        details: coreUpdate,
+        target_version: coreVersion,
+        error: coreQueued?.error || null,
       }
 
-      if (!coreBatchId || coreBatchId === 'null' || coreUpdate?.status === 'failed') {
-        log(`  ⚠️  [${siteNum}] Core update tool did not return a valid batch_id — skipping monitoring. Response: ${JSON.stringify(coreUpdate)}`)
-      } else if (coreBatchId && coreBatchId !== 'null') {
-        log(`  📦 [${siteNum}] Core batch job created: ${coreBatchId}`)
-      }
-
-      // ====================================================================
-      // STEP 5a: Monitor Core Batch Status (Every 2 minutes)
-      // ====================================================================
-
-      if (coreBatchId && coreBatchId !== 'null' && coreUpdate?.status !== 'failed') {
-        log(`  ⏳ [${siteNum}] Monitoring core update batch status...`)
-
-        let coreBatchComplete = false
-        let coreCheckCount = 0
-        let coreFinalStatus = null
-
-        while (!coreBatchComplete && coreCheckCount < MAX_BATCH_CHECKS) {
-          coreCheckCount++
-
-          // STRICT: Always 2 minutes (120s) between checks - DO NOT VARY
-          const waitTime = BATCH_CHECK_INTERVAL
-
-          log(`  ⏱️  [${siteNum}] Waiting ${waitTime/1000}s before check #${coreCheckCount}...`)
-          await new Promise(resolve => setTimeout(resolve, waitTime))
-
-          const queueStatus = await withSharedResourceLimit('batch-status', () => agent(
-            `MUST CALL: smartsites-maintenance:check-batch-status-tool
-Parameters: id="${site.site_id}", batch_id="${coreBatchId}"
-
-If this tool is not immediately visible, use ToolSearch with query "select:smartsites-maintenance:check-batch-status-tool" to load it first, then call it. Do NOT compose a fake response.
-Return ONLY valid JSON (no markdown code fences). Include all job statuses. Example: {"status":"completed","batch_id":"batch_123","completed_count":2,"total_count":2,"jobs_summary":{"pending":0,"running":0,"completed":2,"failed":0,"cancelled":0},"jobs":[]}`,
-            {
-              label: `batch-status-core-${siteNum}-check${coreCheckCount}-batch${coreBatchId.substring(0,8)}`,
-              phase: 'Maintenance',
-              schema: {
-                type: 'object',
-                properties: {
-                  status: { type: ['string', 'number'] },
-                  batch_id: { type: 'string' },
-                  completed_count: { type: 'number' },
-                  total_count: { type: 'number' },
-                  progress: { type: 'object' },
-                  jobs_summary: { type: 'object' },
-                  summary: { type: 'object' },
-                  jobs: { type: 'array' }
-                },
-                required: ['completed_count', 'total_count']
-              }
-            }
-          ))
-
-          // Parse if markdown-wrapped, extract values
-          try {
-            let status = queueStatus
-            if (typeof queueStatus === 'string' && queueStatus.includes('{')) {
-              const m = queueStatus.match(/\{[\s\S]*\}/)
-              if (m) status = JSON.parse(m[0])
-            }
-
-            const p = status?.progress || {}
-            const j = status?.job_summary || status?.jobs_summary || status?.summary || {}
-            const c = status?.completed_count ?? p?.completed ?? j?.completed ?? 0
-            const f = status?.failed ?? p?.failed ?? j?.failed ?? 0
-            const x = status?.cancelled ?? p?.cancelled ?? j?.cancelled ?? 0
-            const pend = p?.pending ?? j?.pending ?? 0
-            const run = p?.running ?? j?.running ?? 0
-            const tot = status?.total_count ?? p?.total ?? 0
-            const done = (pend === 0 && run === 0) && (c + f + x >= tot) && tot > 0
-
-            log(`  📊 [${siteNum}] Core batch #${coreCheckCount}: ${c}/${tot} done (pend:${pend},run:${run})`)
-
-            if (done) {
-              coreBatchComplete = true
-              coreFinalStatus = status
-              log(`  ✅ [${siteNum}] Core batch done (${c}✓${f}✗${x}⊘) - stopping checks`)
-            }
-
-            if (coreCheckCount >= MAX_BATCH_CHECKS && !coreBatchComplete) {
-              log(`  ❌ [${siteNum}] Core batch timeout after ${MAX_BATCH_CHECKS} checks`)
-              coreBatchComplete = true
-              coreFinalStatus = { status: 'timeout', error: 'Batch timed out' }
-            }
-          } catch (e) {
-            log(`  ⚠️  [${siteNum}] Core batch check error`)
-            coreBatchComplete = true
-          }
-        }
+      if (!coreBatchId) {
+        log(`  ❌ [${siteNum}] Core update could not be queued: ${coreQueued?.error}`)
+        siteResult.batch_jobs.push({ type: 'core_update', batch_id: null, final_status: 'failed', details: coreQueued })
+      } else {
+        log(`  📦 [${siteNum}] Core batch queued: ${coreBatchId}`)
+        const coreBatch = await waitForSiteBatch(site, coreBatchId, `core-${siteNum}`)
+        const coreJob = (coreBatch.jobs || []).find(j => j.job_type === 'update_core')
+        const coreFinalStatus = coreBatch.timeout ? 'timeout'
+          : coreJob?.status === 'completed' ? 'completed' : 'failed'
 
         siteResult.batch_jobs.push({
           type: 'core_update',
           batch_id: coreBatchId,
-          checks: coreCheckCount,
-          final_status: coreFinalStatus?.status,
-          details: coreFinalStatus,
+          final_status: coreFinalStatus,
+          details: coreBatch,
         })
+        log(`  ${coreFinalStatus === 'completed' ? '✅' : '❌'} [${siteNum}] Core ${coreFinalStatus}${coreJob?.error_message ? `: ${coreJob.error_message}` : ''}${coreJob?.new_version ? ` (${coreJob.old_version} → ${coreJob.new_version})` : ''}`)
       }
     } else {
       log(`  ⏭️  [${siteNum}] No WordPress core updates available, skipping...`)
@@ -820,32 +670,18 @@ Return ONLY valid JSON (no markdown code fences). Include all job statuses. Exam
 
     // Wait 1 minute before final health check
     log(`  ⏱️  [${siteNum}] Waiting 1 minute before final health check...`)
-    await new Promise(resolve => setTimeout(resolve, AGENT_CALL_INTERVAL))
+    await sleep(AGENT_CALL_INTERVAL)
 
     log(`  6️⃣ [${siteNum}] Running final health check...`)
 
-    const healthCheck2 = await agent(
-      `Previous steps: Initial health = ${initialHealthStatus}; Plugin updates ${siteResult.batch_jobs.find(b => b.type === 'plugin_update')?.final_status || 'N/A'}; Core update ${siteResult.batch_jobs.find(b => b.type === 'core_update')?.final_status || 'N/A'}.
-
-Now call smartsites-maintenance:health-check-tool with id="${site.site_id}" to verify site is healthy after all updates.
-Return {status, errors}.`,
-      {
-        label: `health-check-final-${siteNum}`,
-        phase: 'Maintenance',
-      }
-    )
-
-    // Extract actual status from response
-    const finalHealthStatus = healthCheck2?.status || healthCheck2?.['status'] || (healthCheck2 ? 'healthy' : 'unknown')
-    siteResult.steps.final_health = {
-      status: finalHealthStatus,
-      details: healthCheck2,
-    }
+    const healthCheck2 = await runHealthCheck(site, `health-check-final-${siteNum}`)
+    const finalHealthStatus = healthCheck2.status
+    siteResult.steps.final_health = healthCheck2
     siteResult.step_log.push({
       step_number: 5,
       step_name: 'Health Check (Final)',
-      status: finalHealthStatus === 'healthy' ? 'success' : 'failed',
-      details: healthCheck2
+      status: finalHealthStatus === 'passed' ? 'success' : 'failed',
+      details: healthCheck2.details
     })
     log(`  ✅ [${siteNum}] Final Health: ${finalHealthStatus}`)
 

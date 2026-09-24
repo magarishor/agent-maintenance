@@ -106,21 +106,29 @@ If bulk runs still fail after this, increase `SITE_STAGGER_OFFSET` and/or the re
 
 ## Conditional Logic
 
+### Pre-Backup
+- `create-backup-tool` only **queues** a backup. The workflow polls the backup batch until the job finishes and uses the real `bkp_…` id from the job result.
+- If the backup fails or doesn't finish (2 attempts), all updates for that site are skipped.
+
 ### Plugin Updates
-- **Called if:** `updateCheck?.plugins_available > 0`
-- **Step:** inline agent call, model sonnet, uses `update-all-plugins-tool`
-- **Skip if:** 0 plugins available (logs "No plugin updates available, skipping...")
+- **Called if:** at least one plugin from `check-updates-tool` has `can_update: true` (licensed/blocked plugins like Gravity Forms are recorded, not counted)
+- **Step:** ONE `update-all-plugins-tool` call (`create_backup=true, run_health_checks=true`). The site updates each plugin in turn with its own backup, health check and automatic rollback — the workflow does not update plugins one by one.
+- **Monitor:** `waitForSiteBatch()` polls the batch directly on the site until no jobs are pending/running; per-plugin status, versions and rollbacks are recorded.
+- **Skip if:** 0 updatable plugins
 
 ### Core Updates
-- **Called if:** `updateCheck?.core_available === true`
-- **Step:** inline agent call, model sonnet, uses `update-core-tool`
-- **Skip if:** No core updates available
+- **Called if:** `core_available === true`
+- **Before:** `waitForDashboardRelease()` — after any batch, the Pegasus dashboard keeps the site **locked** until it marks the batch `batch_processed` (often 5–10 min). Updates sent during that window are rejected with `Another update(...) is already being processed`.
+- **Step:** `update-core-tool`. It often reports `success:false` with "Job queued" — that means it WAS queued; the batch_id is taken from the response.
+- **Lock retry:** `queueWithLockRetry()` retries any update rejected by the lock (`LOCK_RETRIES`, 2 min apart).
 
 ### Batch Monitoring
-- **Loop:** While status pending/processing
 - **Interval:** 2 minutes (120 seconds) between checks — STRICT
-- **Max checks:** 5 checks (~10 minutes timeout)
-- **Terminal states:** success, failed, cancelled
+- **Max checks:** 5 checks (~10 minutes timeout) per batch; 8 checks (~16 min) waiting for the dashboard lock release
+- **Done when:** summary shows `pending == 0 && running == 0`; result is `completed`, `failed` (any failed/cancelled job) or `timeout`
+
+### Health Checks
+- `runHealthCheck()` uses a schema with a real `passed` boolean (`'passed'`/`'failed'`). Previously an unparsed health result was treated as a failure and rolled back good updates.
 
 ---
 
@@ -194,7 +202,9 @@ await Workflow({
 - If batch stuck, check interval is 2 minutes (120 seconds) between each check
 
 ### Works One-by-One But Fails/Times Out in Bulk
-- This is almost always the concurrent-fan-out issue described in [Concurrency & Rate Limiting](#concurrency--rate-limiting) — multiple sites in a batch hitting the same rate-limited endpoint (`check-batch-status-tool`, `sync-sheets-tool`) at the same instant
+- **"Another update(...) is already being processed"** — the site is still locked by the dashboard after a previous batch. The workflow now waits for `batch_processed` and retries; if it still fails, raise `MAX_RELEASE_CHECKS` / `LOCK_RETRIES`.
+- Plugins showing `health_check_failed` / rolled back while the site log shows a successful update — the health check result wasn't parsed; make sure `runHealthCheck()` (with `HEALTH_SCHEMA`) is used for every health check.
+- Otherwise it is usually the concurrent-fan-out issue described in [Concurrency & Rate Limiting](#concurrency--rate-limiting) — multiple sites in a batch hitting the same rate-limited endpoint (`check-batch-status-tool`, `sync-sheets-tool`) at the same instant
 - Check that `withSharedResourceLimit(...)` still wraps every `check-batch-status-tool` and `sync-sheets-tool` call in `daily-maintenance.js` — if a new shared-resource call was added without wrapping it, it can reintroduce this failure mode
 - If it still happens, increase `SITE_STAGGER_OFFSET` and/or the relevant `SHARED_RESOURCE_GAP` value, or lower `PARALLEL_BATCH_SIZE`
 - Sheet sync failing specifically in bulk (but not solo) usually means Google Sheets API per-minute write quota was burst past — widen the `'sheet-sync'` gap
