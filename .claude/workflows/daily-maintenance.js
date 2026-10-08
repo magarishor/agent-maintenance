@@ -65,6 +65,7 @@ const MAX_PRE_BACKUP_ATTEMPTS = 2            // Full backup attempts before skip
 const PRE_BACKUP_RETRY_TIMEOUT = 180_000     // 3 minutes before backup retry
 const MAX_RELEASE_CHECKS = 8                 // Max 8 checks = 16 minutes waiting for dashboard to release site lock
 const LOCK_RETRIES = 3                       // Retries when an update is rejected with "already being processed"
+const SKIP_BACKUP = true                     // Set to true to skip backup creation (manual backup taken)
 
 // ============================================================================
 // CROSS-SITE SHARED-RESOURCE RATE LIMITER
@@ -405,81 +406,94 @@ async function processSiteSequence(site, siteNum, total_sites) {
     // STEP 2a: Create Fresh Full Backup (queued job - wait for it to finish)
     // ========================================================================
 
-    log(`  2️⃣a [${siteNum}] Creating fresh backup before updates...`)
-
     let preBackup = { success: false, backup_id: null, error: null }
     let backupAttempt = 0
 
-    while (!preBackup.success && backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
-      backupAttempt++
-      log(`  🔄 [${siteNum}] Backup attempt ${backupAttempt}/${MAX_PRE_BACKUP_ATTEMPTS}...`)
+    if (SKIP_BACKUP) {
+      log(`  2️⃣a [${siteNum}] Skipping backup (manual backup already taken)`)
+      preBackup = { success: true, backup_id: 'manual', error: null }
+      siteResult.step_log.push({
+        step_number: '2a',
+        step_name: 'Pre-Backup Creation',
+        status: 'skipped',
+        details: { backup_id: 'manual', note: 'Manual backup taken, skipping automated backup' },
+        attempts: 0
+      })
+      log(`  ⏭️  [${siteNum}] Using manual backup, proceeding with updates...`)
+    } else {
+      log(`  2️⃣a [${siteNum}] Creating fresh backup before updates...`)
 
-      const backupQueued = await agent(
-        `MUST CALL: smartsites-maintenance:create-backup-tool
+      while (!preBackup.success && backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
+        backupAttempt++
+        log(`  🔄 [${siteNum}] Backup attempt ${backupAttempt}/${MAX_PRE_BACKUP_ATTEMPTS}...`)
+
+        const backupQueued = await agent(
+          `MUST CALL: smartsites-maintenance:create-backup-tool
 Parameters: id="${site.site_id}", backup_type="full"
 If the tool is not visible, load it with ToolSearch "select:mcp__smartsites-maintenance__create-backup-tool". Do NOT invent a result.
 
 The backup is queued asynchronously. Return the batch_id from the response (e.g. "batch_abc123").
 If the tool returns an error, set batch_id to "" and error to the exact error message.`,
-        {
-          label: `pre-backup-${siteNum}-attempt${backupAttempt}`,
-          phase: 'Maintenance',
-          schema: { type: 'object', properties: QUEUE_SCHEMA_PROPS, required: ['batch_id'] }
-        }
-      )
+          {
+            label: `pre-backup-${siteNum}-attempt${backupAttempt}`,
+            phase: 'Maintenance',
+            schema: { type: 'object', properties: QUEUE_SCHEMA_PROPS, required: ['batch_id'] }
+          }
+        )
 
-      if (backupQueued?.batch_id) {
-        const backupBatch = await waitForSiteBatch(site, backupQueued.batch_id, `pre-backup-${siteNum}`)
-        const backupJob = (backupBatch.jobs || []).find(j => j.job_type === 'backup')
-        if (backupBatch.done && backupJob?.status === 'completed' && backupJob?.backup_id) {
-          preBackup = { success: true, backup_id: backupJob.backup_id, batch_id: backupQueued.batch_id }
-          log(`  ✅ [${siteNum}] Fresh backup ready: ${backupJob.backup_id}`)
-          break
+        if (backupQueued?.batch_id) {
+          const backupBatch = await waitForSiteBatch(site, backupQueued.batch_id, `pre-backup-${siteNum}`)
+          const backupJob = (backupBatch.jobs || []).find(j => j.job_type === 'backup')
+          if (backupBatch.done && backupJob?.status === 'completed' && backupJob?.backup_id) {
+            preBackup = { success: true, backup_id: backupJob.backup_id, batch_id: backupQueued.batch_id }
+            log(`  ✅ [${siteNum}] Fresh backup ready: ${backupJob.backup_id}`)
+            break
+          }
+          preBackup.error = backupBatch.timeout ? 'Backup did not finish in time' : (backupJob?.error_message || 'Backup job failed')
+        } else {
+          preBackup.error = backupQueued?.error || 'Backup could not be queued'
         }
-        preBackup.error = backupBatch.timeout ? 'Backup did not finish in time' : (backupJob?.error_message || 'Backup job failed')
-      } else {
-        preBackup.error = backupQueued?.error || 'Backup could not be queued'
+
+        if (backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
+          log(`  ⚠️  [${siteNum}] Backup attempt ${backupAttempt} failed (${preBackup.error}) - retrying in ${PRE_BACKUP_RETRY_TIMEOUT / 1000}s...`)
+          await sleep(PRE_BACKUP_RETRY_TIMEOUT)
+        }
       }
 
-      if (backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
-        log(`  ⚠️  [${siteNum}] Backup attempt ${backupAttempt} failed (${preBackup.error}) - retrying in ${PRE_BACKUP_RETRY_TIMEOUT / 1000}s...`)
-        await sleep(PRE_BACKUP_RETRY_TIMEOUT)
+      siteResult.steps.pre_backup = { ...preBackup, attempts: backupAttempt }
+
+      if (!preBackup.success) {
+        log(`  ❌ [${siteNum}] Pre-backup FAILED after ${backupAttempt} attempts - SKIPPING ALL UPDATES (no safe backup)`)
+        siteResult.step_log.push({
+          step_number: '2a',
+          step_name: 'Pre-Backup Creation',
+          status: 'failed',
+          details: preBackup,
+          attempts: backupAttempt,
+          reason: 'Backup creation timeout/failed - skipping plugin/core updates for safety'
+        })
+        siteResult.status = 'completed_with_warning'
+        log(`  💾 [${siteNum}] Saving site log (backup failed)...`)
+        await agent(
+          `Write file: log/maintenance_logs/site_${siteResult.site_id}.json
+Content: ${JSON.stringify(siteResult)}
+Use Python to write. Return {success: true}.`,
+          {
+            label: `log-backup-fail-${siteNum}`,
+            phase: 'Maintenance'
+          }
+        )
+        return siteResult
       }
-    }
 
-    siteResult.steps.pre_backup = { ...preBackup, attempts: backupAttempt }
-
-    if (!preBackup.success) {
-      log(`  ❌ [${siteNum}] Pre-backup FAILED after ${backupAttempt} attempts - SKIPPING ALL UPDATES (no safe backup)`)
       siteResult.step_log.push({
         step_number: '2a',
         step_name: 'Pre-Backup Creation',
-        status: 'failed',
-        details: preBackup,
-        attempts: backupAttempt,
-        reason: 'Backup creation timeout/failed - skipping plugin/core updates for safety'
+        status: 'success',
+        details: { backup_id: preBackup.backup_id },
+        attempts: backupAttempt
       })
-      siteResult.status = 'completed_with_warning'
-      log(`  💾 [${siteNum}] Saving site log (backup failed)...`)
-      await agent(
-        `Write file: log/maintenance_logs/site_${siteResult.site_id}.json
-Content: ${JSON.stringify(siteResult)}
-Use Python to write. Return {success: true}.`,
-        {
-          label: `log-backup-fail-${siteNum}`,
-          phase: 'Maintenance'
-        }
-      )
-      return siteResult
     }
-
-    siteResult.step_log.push({
-      step_number: '2a',
-      step_name: 'Pre-Backup Creation',
-      status: 'success',
-      details: { backup_id: preBackup.backup_id },
-      attempts: backupAttempt
-    })
 
     // Wait 1 minute before next step
     log(`  ⏱️  [${siteNum}] Waiting 1 minute before next step...`)
