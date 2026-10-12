@@ -427,35 +427,41 @@ async function processSiteSequence(site, siteNum, total_sites) {
         backupAttempt++
         log(`  🔄 [${siteNum}] Backup attempt ${backupAttempt}/${MAX_PRE_BACKUP_ATTEMPTS}...`)
 
-        const backupQueued = await agent(
+        const preBackupResult = await agent(
           `MUST CALL: smartsites-maintenance:create-backup-tool
 Parameters: id="${site.site_id}", backup_type="full"
-If the tool is not visible, load it with ToolSearch "select:mcp__smartsites-maintenance__create-backup-tool". Do NOT invent a result.
 
-The backup is queued asynchronously. Return the batch_id from the response (e.g. "batch_abc123").
-If the tool returns an error, set batch_id to "" and error to the exact error message.`,
+This fresh backup will be used for rollback if updates fail.
+Attempt ${backupAttempt} of ${MAX_PRE_BACKUP_ATTEMPTS}.
+Return {success: boolean, backup_id: string, message: string}`,
           {
             label: `pre-backup-${siteNum}-attempt${backupAttempt}`,
             phase: 'Maintenance',
-            schema: { type: 'object', properties: QUEUE_SCHEMA_PROPS, required: ['batch_id'] }
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                backup_id: { type: 'string' },
+                message: { type: 'string' }
+              },
+              required: ['success', 'message']
+            }
           }
         )
+        preBackup = {
+          success: preBackupResult?.success || false,
+          backup_id: preBackupResult?.backup_id || null,
+          error: preBackupResult?.message || null
+        }
 
-        if (backupQueued?.batch_id) {
-          const backupBatch = await waitForSiteBatch(site, backupQueued.batch_id, `pre-backup-${siteNum}`)
-          const backupJob = (backupBatch.jobs || []).find(j => j.job_type === 'backup')
-          if (backupBatch.done && backupJob?.status === 'completed' && backupJob?.backup_id) {
-            preBackup = { success: true, backup_id: backupJob.backup_id, batch_id: backupQueued.batch_id }
-            log(`  ✅ [${siteNum}] Fresh backup ready: ${backupJob.backup_id}`)
-            break
-          }
-          preBackup.error = backupBatch.timeout ? 'Backup did not finish in time' : (backupJob?.error_message || 'Backup job failed')
-        } else {
-          preBackup.error = backupQueued?.error || 'Backup could not be queued'
+        if (preBackup.success) {
+          log(`  ✅ [${siteNum}] Fresh backup ready: ${preBackup.backup_id}`)
+          break
         }
 
         if (backupAttempt < MAX_PRE_BACKUP_ATTEMPTS) {
-          log(`  ⚠️  [${siteNum}] Backup attempt ${backupAttempt} failed (${preBackup.error}) - retrying in ${PRE_BACKUP_RETRY_TIMEOUT / 1000}s...`)
+          log(`  ⚠️  [${siteNum}] Backup attempt ${backupAttempt} failed - retrying with extended timeout...`)
+          log(`  ⏱️  [${siteNum}] Waiting 3 minutes before backup retry (extended window)...`)
           await sleep(PRE_BACKUP_RETRY_TIMEOUT)
         }
       }
